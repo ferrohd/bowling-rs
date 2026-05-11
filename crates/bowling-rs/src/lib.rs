@@ -5,3 +5,4 @@ pub mod geometry;
 pub mod pins;
 pub mod player;
 pub mod roll;
+pub mod ruleset;
