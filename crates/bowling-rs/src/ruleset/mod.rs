@@ -4,8 +4,12 @@
 //! from another: pin count, frame count, balls per frame, deadwood policy,
 //! bonus scoring, and optional pin geometry for split detection.
 
+mod candlepin;
+mod duckpin;
 mod tenpin;
 
+pub use candlepin::Candlepin;
+pub use duckpin::Duckpin;
 pub use tenpin::TenPin;
 
 use crate::geometry::PinGeometry;
