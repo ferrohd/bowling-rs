@@ -7,3 +7,4 @@ pub mod pins;
 pub mod player;
 pub mod roll;
 pub mod ruleset;
+pub mod scorecard;
