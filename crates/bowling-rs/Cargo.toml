@@ -9,6 +9,7 @@ license = "MIT"
 thiserror = "2"
 
 [dev-dependencies]
+proptest = "1"
 trybuild = "1"
 
 [lints]
