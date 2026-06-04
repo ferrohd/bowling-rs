@@ -703,4 +703,128 @@ mod tests {
         assert_eq!(game.scorecard(1).frames_completed(), 0);
         assert_eq!(game.competitors().len(), 2);
     }
+
+    #[test]
+    fn foul_strike_completes_frame_with_zero_base() {
+        // A foul that physically clears all pins: the frame completes
+        // (strike transition), but base_score is 0 because Roll::score()
+        // returns 0 on fouls.
+        let game = GameBuilder::<TenPin>::new("Fouler")
+            .unwrap()
+            .build()
+            .unwrap();
+
+        let foul_strike = Roll::new(PinSet::full(10).unwrap(), true);
+        let progress = game.roll(foul_strike).unwrap();
+
+        // Game should advance (frame 1 done, now on frame 2)
+        let Progress::AwaitingRoll(game) = progress else {
+            panic!("game should continue after one frame")
+        };
+        assert_eq!(game.current_frame_number(), 2);
+
+        // Frame 1 should be recorded with base_score 0
+        let card = game.scorecard(0);
+        assert_eq!(card.frames_completed(), 1);
+        assert_eq!(card.frames()[0].base_score(), 0);
+    }
+
+    #[test]
+    fn candlepin_full_game_with_three_ball_frames() {
+        // Play a complete Candlepin game where frames go to 3 balls.
+        // Frame pattern: each frame knocks 3, then 3, then 3 (open, 9 pins).
+        // Final frame: same pattern (3, 3, 3 = open, 9).
+        // No strikes or spares → no bonuses. Total = 9 × 10 = 90.
+        let game = GameBuilder::<Candlepin>::new("Candle")
+            .unwrap()
+            .build()
+            .unwrap();
+
+        let mut progress = Progress::AwaitingRoll(game);
+        // 10 frames × 3 balls = 30 rolls
+        for _ in 0..30 {
+            match progress {
+                Progress::AwaitingRoll(g) => {
+                    progress = g.roll_count(3).unwrap();
+                }
+                Progress::Complete(_) => break,
+            }
+        }
+
+        let Progress::Complete(game) = progress else {
+            panic!("candlepin game should complete after 30 rolls of 3")
+        };
+
+        let sb = game.scoreboard(0);
+        assert_eq!(sb.total, 90); // 10 frames × 9 pins each
+    }
+
+    #[test]
+    fn duckpin_alldown_gets_no_bonus() {
+        // Duckpin: frame 1 clears all pins in 3 balls (AllDown).
+        // Frame 2 is a simple open. AllDown earns NO bonus in duckpin,
+        // so frame 1 score should be exactly 10 (flat), not 10 + frame 2 rolls.
+        let game = GameBuilder::<Duckpin>::new("Duck")
+            .unwrap()
+            .build()
+            .unwrap();
+
+        // Frame 1: 3 + 4 + 3 = 10 (all down in 3 balls)
+        let progress = game.roll_count(3).unwrap();
+        let Progress::AwaitingRoll(g) = progress else {
+            panic!("should continue")
+        };
+        let progress = g.roll_count(4).unwrap();
+        let Progress::AwaitingRoll(g) = progress else {
+            panic!("should continue")
+        };
+        let progress = g.roll_count(3).unwrap();
+        let Progress::AwaitingRoll(g) = progress else {
+            panic!("should continue; frame 1 done, frame 2 starts")
+        };
+        assert_eq!(g.current_frame_number(), 2);
+
+        // Frame 2: 5 + 2 + 1 = 8 (open, 3 balls in duckpin)
+        let progress = g.roll_count(5).unwrap();
+        let Progress::AwaitingRoll(g) = progress else {
+            panic!("should continue")
+        };
+        let progress = g.roll_count(2).unwrap();
+        let Progress::AwaitingRoll(g) = progress else {
+            panic!("should continue; duckpin has 3 balls per frame")
+        };
+        let progress = g.roll_count(1).unwrap();
+
+        // Check scoreboard: frame 1 should be 10 flat (no bonus)
+        let g = match progress {
+            Progress::AwaitingRoll(g) => g,
+            Progress::Complete(_) => panic!("game should not be complete after 2 frames"),
+        };
+        assert_eq!(g.current_frame_number(), 3);
+        let sb = g.scoreboard(0);
+
+        // Frame 1: AllDown, base 10, bonus 0 (not spare)
+        let FrameScore::Resolved {
+            base,
+            bonus,
+            cumulative,
+            ..
+        } = &sb.frames[0]
+        else {
+            panic!("frame 1 should be resolved")
+        };
+        assert_eq!(*base, 10);
+        assert_eq!(*bonus, 0); // AllDown → no bonus
+        assert_eq!(*cumulative, 10);
+
+        // Frame 2: Open, base 8
+        let FrameScore::Resolved {
+            base, cumulative, ..
+        } = &sb.frames[1]
+        else {
+            panic!("frame 2 should be resolved")
+        };
+        assert_eq!(*base, 8);
+        assert_eq!(*cumulative, 18); // 10 + 8
+    }
 }

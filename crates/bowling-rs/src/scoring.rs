@@ -323,4 +323,186 @@ mod tests {
         let sb = compute_scoreboard::<TenPin>(&frames);
         assert_eq!(sb.total, 150);
     }
+
+    #[test]
+    fn mixed_game_strike_spare_open() {
+        // Frame 1: Strike(10). Bonus = next 2 rolls = 3 + 7 = 10. Total = 20.
+        // Frame 2: Spare(3,7). Bonus = next 1 roll = 5.           Total = 20 + 15 = 35.
+        // Frame 3: Open(5,2).  Bonus = 0.                         Total = 35 + 7  = 42.
+        // Frames 4-9: Open(4,3) each = 7.                         Total = 42 + 42 = 84.
+        // Frame 10: Open(2,5) (final) = 7.                        Total = 84 + 7  = 91.
+        let mut frames = vec![
+            strike_frame(1),
+            spare_frame(2, 3),
+            open_frame(3, 5, 2),
+        ];
+        for n in 4..=9 {
+            frames.push(open_frame(n, 4, 3));
+        }
+        frames.push(ScoredFrame::new(
+            10,
+            true,
+            FrameKind::Open,
+            vec![
+                Roll::clean(PinSet::from_raw(0b0000_0011)),
+                Roll::clean(PinSet::from_raw(0b0001_1100)),
+            ],
+            7,
+        ));
+
+        let sb = compute_scoreboard::<TenPin>(&frames);
+
+        // Verify individual frame scores
+        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[0] else {
+            panic!("frame 1 should be resolved")
+        };
+        assert_eq!(*bonus, 10);   // 3 + 7 from frame 2
+        assert_eq!(*cumulative, 20);
+
+        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[1] else {
+            panic!("frame 2 should be resolved")
+        };
+        assert_eq!(*bonus, 5);    // first roll of frame 3
+        assert_eq!(*cumulative, 35);
+
+        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[2] else {
+            panic!("frame 3 should be resolved")
+        };
+        assert_eq!(*bonus, 0);
+        assert_eq!(*cumulative, 42);
+
+        assert_eq!(sb.total, 91);
+    }
+
+    #[test]
+    fn consecutive_strikes_then_open() {
+        // Frame 1: Strike. Bonus = next 2 rolls = 10 (F2 strike) + 3 (F3 ball1) = 13.
+        //   Cum = 23.
+        // Frame 2: Strike. Bonus = next 2 rolls = 3 + 4 (F3 balls) = 7.
+        //   Cum = 23 + 17 = 40.
+        // Frame 3: Open(3,4). Cum = 40 + 7 = 47.
+        // Frames 4-9: Open(0,0). Cum stays at 47.
+        // Frame 10: Open(0,0). Total = 47.
+        let mut frames = vec![
+            strike_frame(1),
+            strike_frame(2),
+            open_frame(3, 3, 4),
+        ];
+        for n in 4..=9 {
+            frames.push(open_frame(n, 0, 0));
+        }
+        frames.push(ScoredFrame::new(
+            10,
+            true,
+            FrameKind::Open,
+            vec![Roll::clean(PinSet::EMPTY), Roll::clean(PinSet::EMPTY)],
+            0,
+        ));
+
+        let sb = compute_scoreboard::<TenPin>(&frames);
+
+        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[0] else {
+            panic!("frame 1 should be resolved")
+        };
+        assert_eq!(*bonus, 13); // 10 + 3
+        assert_eq!(*cumulative, 23);
+
+        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[1] else {
+            panic!("frame 2 should be resolved")
+        };
+        assert_eq!(*bonus, 7); // 3 + 4
+        assert_eq!(*cumulative, 40);
+
+        assert_eq!(sb.total, 47);
+    }
+
+    #[test]
+    fn in_progress_game_has_pending_frames() {
+        // 4 open frames (resolved) + 1 strike (pending, no frame 6 yet).
+        let frames = vec![
+            open_frame(1, 3, 4), // base 7, cum 7
+            open_frame(2, 2, 5), // base 7, cum 14
+            open_frame(3, 1, 1), // base 2, cum 16
+            open_frame(4, 4, 4), // base 8, cum 24
+            strike_frame(5),     // needs 2 bonus rolls; not available
+        ];
+
+        let sb = compute_scoreboard::<TenPin>(&frames);
+
+        assert_eq!(sb.frames.len(), 5);
+
+        // First 4 should be resolved
+        for i in 0..4 {
+            assert!(
+                matches!(sb.frames[i], FrameScore::Resolved { .. }),
+                "frame {} should be Resolved",
+                i + 1
+            );
+        }
+
+        // Frame 5 (strike) should be pending
+        assert!(
+            matches!(sb.frames[4], FrameScore::Pending { .. }),
+            "frame 5 strike should be Pending (no bonus rolls available)"
+        );
+
+        // Total should be the last resolved frame's cumulative
+        let FrameScore::Resolved { cumulative, .. } = &sb.frames[3] else {
+            panic!("frame 4 should be resolved")
+        };
+        assert_eq!(sb.total, *cumulative);
+        assert_eq!(sb.total, 24);
+    }
+
+    #[test]
+    fn foul_zeroes_bonus_contribution() {
+        // Frame 1: Strike (10). Bonus comes from frame 2's rolls.
+        // Frame 2: Foul knocking 5 pins (score 0) + clean 3 (score 3).
+        //   Frame 1 bonus = score(foul) + score(clean) = 0 + 3 = 3.
+        //   Frame 1 total = 10 + 3 = 13.
+        //   Frame 2 base = 0 + 3 = 3.
+        //   Frame 2 cum = 13 + 3 = 16.
+        // Remaining frames: all open(0,0).
+        let foul_pins = PinSet::from_raw(0b0001_1111); // 5 pins
+        let clean_pins = PinSet::from_raw(0b1110_0000); // 3 pins (7,8,9; from remaining standing)
+        let foul_frame = ScoredFrame::new(
+            2,
+            false,
+            FrameKind::Open,
+            vec![
+                Roll::new(foul_pins, true),  // foul: score = 0
+                Roll::clean(clean_pins),     // clean: score = 3
+            ],
+            3, // 0 + 3
+        );
+
+        let mut frames = vec![strike_frame(1), foul_frame];
+        for n in 3..=9 {
+            frames.push(open_frame(n, 0, 0));
+        }
+        frames.push(ScoredFrame::new(
+            10,
+            true,
+            FrameKind::Open,
+            vec![Roll::clean(PinSet::EMPTY), Roll::clean(PinSet::EMPTY)],
+            0,
+        ));
+
+        let sb = compute_scoreboard::<TenPin>(&frames);
+
+        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[0] else {
+            panic!("frame 1 should be resolved")
+        };
+        assert_eq!(*bonus, 3);       // foul(0) + clean(3), NOT pin_count(5) + 3
+        assert_eq!(*cumulative, 13); // 10 + 3
+
+        assert_eq!(sb.total, 16);    // 13 + 3
+    }
+
+    #[test]
+    fn empty_frames_returns_zero() {
+        let sb = compute_scoreboard::<TenPin>(&[]);
+        assert!(sb.frames.is_empty());
+        assert_eq!(sb.total, 0);
+    }
 }

@@ -683,4 +683,220 @@ mod tests {
         assert_eq!(sf.base_score(), 15);
         assert!(sf.is_final());
     }
+
+    // --- Gutter & boundary edge cases ---
+
+    #[test]
+    fn regular_frame_gutter_then_spare() {
+        // Ball 1: gutter (0 pins). Ball 2: clears full rack → spare.
+        let frame = RegularFrame::<TenPin, BallOne>::new(1).unwrap();
+        let outcome = frame.roll(knock(0)).unwrap();
+        let RegAfterOne::Continue(frame2) = outcome else {
+            panic!("expected Continue after gutter")
+        };
+        // All 10 pins still standing; knock them all on ball 2
+        assert_eq!(frame2.standing().count(), 10);
+        let outcome2 = frame2.roll(strike_roll()).unwrap();
+        let RegAfterTwo::Done(sf) = outcome2 else {
+            panic!("expected Done")
+        };
+        assert_eq!(sf.kind(), FrameKind::Spare);
+        assert_eq!(sf.base_score(), 10);
+    }
+
+    #[test]
+    fn regular_frame_foul_removes_pins_but_scores_zero() {
+        // Ball 1: foul knocking 3 pins. Pins are removed from standing,
+        // but the delivery scores 0.
+        let foul_delivery = Roll::new(PinSet::from_raw(0b0000_0111), true); // pins 0,1,2
+        let frame = RegularFrame::<TenPin, BallOne>::new(1).unwrap();
+        let outcome = frame.roll(foul_delivery).unwrap();
+        let RegAfterOne::Continue(frame2) = outcome else {
+            panic!("expected Continue; foul didn't clear all pins")
+        };
+        assert_eq!(frame2.standing().count(), 7);
+
+        // Ball 2: clean knock of 4 of the remaining 7.
+        // Remaining standing is pins 3..=9; knock pins 3,4,5,6.
+        let ball2 = Roll::clean(PinSet::from_raw(0b0111_1000));
+        let outcome2 = frame2.roll(ball2).unwrap();
+        let RegAfterTwo::Done(sf) = outcome2 else {
+            panic!("expected Done")
+        };
+        assert_eq!(sf.kind(), FrameKind::Open);
+        // base_score = foul(0) + clean(4) = 4
+        assert_eq!(sf.base_score(), 4);
+    }
+
+    // --- Final frame edge cases ---
+
+    #[test]
+    fn final_frame_strike_then_open_fill() {
+        // Strike on ball 1 → fill-2 knocks 6 → fill-3 knocks 2 of
+        // the remaining 4. Pins reset after strike, NOT after fill-2
+        // partial.
+        let f = FinalFrame::<TenPin, BallOne>::new(10).unwrap();
+        let FinalAfterOne::ToFillTwo(f2) = f.roll(strike_roll()).unwrap() else {
+            panic!("expected ToFillTwo")
+        };
+        // Pins reset to 10 after the strike
+        assert_eq!(f2.standing().count(), 10);
+
+        let fill2 = knock(6);
+        let f3 = f2.roll(fill2).unwrap();
+        // Not a clearance, so pins should NOT be reset. 4 remain
+        assert_eq!(f3.standing().count(), 4);
+
+        // Knock 2 of the remaining 4 (pins 6, 7)
+        let fill3 = Roll::clean(PinSet::from_raw(0b1100_0000));
+        let sf = f3.roll(fill3).unwrap();
+        assert_eq!(sf.kind(), FrameKind::Strike);
+        assert_eq!(sf.base_score(), 18); // 10 + 6 + 2
+        assert!(sf.is_final());
+        assert_eq!(sf.rolls().len(), 3);
+    }
+
+    #[test]
+    fn final_frame_open() {
+        // Ball 1: 3. Ball 2: 4. No clearance → done, no fill ball.
+        let f = FinalFrame::<TenPin, BallOne>::new(10).unwrap();
+        let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
+            panic!("expected ToBallTwo")
+        };
+        // Pins 0,1,2 are down; knock pins 3,4,5,6 (4 pins from remaining)
+        let ball2 = Roll::clean(PinSet::from_raw(0b0111_1000));
+        let FinalAfterTwo::Done(sf) = f2.roll(ball2).unwrap() else {
+            panic!("expected Done (open)")
+        };
+        assert_eq!(sf.kind(), FrameKind::Open);
+        assert_eq!(sf.base_score(), 7);
+        assert!(sf.is_final());
+    }
+
+    #[test]
+    fn final_frame_gutter_gutter() {
+        let f = FinalFrame::<TenPin, BallOne>::new(10).unwrap();
+        let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(0)).unwrap() else {
+            panic!("expected ToBallTwo")
+        };
+        let FinalAfterTwo::Done(sf) = f2.roll(knock(0)).unwrap() else {
+            panic!("expected Done")
+        };
+        assert_eq!(sf.kind(), FrameKind::Open);
+        assert_eq!(sf.base_score(), 0);
+        assert!(sf.is_final());
+    }
+
+    // --- 3-ball variant tests (Candlepin / Duckpin) ---
+
+    /// Helper: knock `n` lowest-indexed pins from a given standing set.
+    fn knock_n_from(standing: PinSet, n: u8) -> Roll {
+        let mut result = PinSet::EMPTY;
+        for (count, idx) in standing.into_iter().enumerate() {
+            if count >= n as usize {
+                break;
+            }
+            result = result.insert(idx);
+        }
+        Roll::clean(result)
+    }
+
+    #[test]
+    fn candlepin_regular_three_ball_spare() {
+        // Candlepin: 3 balls per frame. Knock 3 → 4 → 3 (all 10 down).
+        // ALL_DOWN_IS_SPARE = true → FrameKind::Spare
+        let frame = RegularFrame::<Candlepin, BallOne>::new(1).unwrap();
+        let outcome = frame.roll(knock(3)).unwrap();
+        let RegAfterOne::Continue(f2) = outcome else {
+            panic!("expected Continue")
+        };
+        assert_eq!(f2.standing().count(), 7);
+
+        let ball2 = knock_n_from(f2.standing(), 4);
+        let outcome2 = f2.roll(ball2).unwrap();
+        let RegAfterTwo::Continue(f3) = outcome2 else {
+            panic!("expected Continue to BallThree")
+        };
+        assert_eq!(f3.standing().count(), 3);
+
+        let ball3 = knock_n_from(f3.standing(), 3);
+        let sf = f3.roll(ball3).unwrap();
+        assert_eq!(sf.kind(), FrameKind::Spare);
+        assert_eq!(sf.base_score(), 10);
+        assert!(!sf.is_final());
+    }
+
+    #[test]
+    fn duckpin_regular_three_ball_alldown() {
+        // Duckpin: same rolls as above, 3 → 4 → 3 (all 10 down).
+        // ALL_DOWN_IS_SPARE = false → FrameKind::AllDown (no bonus)
+        let frame = RegularFrame::<Duckpin, BallOne>::new(1).unwrap();
+        let outcome = frame.roll(knock(3)).unwrap();
+        let RegAfterOne::Continue(f2) = outcome else {
+            panic!("expected Continue")
+        };
+
+        let ball2 = knock_n_from(f2.standing(), 4);
+        let outcome2 = f2.roll(ball2).unwrap();
+        let RegAfterTwo::Continue(f3) = outcome2 else {
+            panic!("expected Continue to BallThree")
+        };
+
+        let ball3 = knock_n_from(f3.standing(), 3);
+        let sf = f3.roll(ball3).unwrap();
+        assert_eq!(sf.kind(), FrameKind::AllDown);
+        assert_eq!(sf.base_score(), 10);
+        assert!(!sf.is_final());
+    }
+
+    #[test]
+    fn candlepin_final_three_ball_spare_earns_fill() {
+        // Candlepin final frame: 3 → 4 → 3 (all down via 3 balls).
+        // ALL_DOWN_IS_SPARE = true → earns a fill ball.
+        let f = FinalFrame::<Candlepin, BallOne>::new(10).unwrap();
+        let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
+            panic!("expected ToBallTwo")
+        };
+
+        let ball2 = knock_n_from(f2.standing(), 4);
+        let FinalAfterTwo::ToBallThree(f3) = f2.roll(ball2).unwrap() else {
+            panic!("expected ToBallThree (3-ball variant)")
+        };
+
+        let ball3 = knock_n_from(f3.standing(), 3);
+        let FinalAfterThree::ToFillThree(fill) = f3.roll(ball3).unwrap() else {
+            panic!("expected ToFillThree; candlepin 3-ball spare earns fill")
+        };
+        // Pins reset after spare
+        assert_eq!(fill.standing().count(), 10);
+
+        let sf = fill.roll(knock(6)).unwrap();
+        assert_eq!(sf.kind(), FrameKind::Spare);
+        assert_eq!(sf.base_score(), 16); // 3+4+3+6
+        assert!(sf.is_final());
+    }
+
+    #[test]
+    fn duckpin_final_three_ball_alldown_no_fill() {
+        // Duckpin final frame: 3 → 4 → 3 (all down via 3 balls).
+        // ALL_DOWN_IS_SPARE = false → Done immediately, no fill ball.
+        let f = FinalFrame::<Duckpin, BallOne>::new(10).unwrap();
+        let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
+            panic!("expected ToBallTwo")
+        };
+
+        let ball2 = knock_n_from(f2.standing(), 4);
+        let FinalAfterTwo::ToBallThree(f3) = f2.roll(ball2).unwrap() else {
+            panic!("expected ToBallThree (3-ball variant)")
+        };
+
+        let ball3 = knock_n_from(f3.standing(), 3);
+        let FinalAfterThree::Done(sf) = f3.roll(ball3).unwrap() else {
+            panic!("expected Done; duckpin AllDown does NOT earn a fill ball")
+        };
+        assert_eq!(sf.kind(), FrameKind::AllDown);
+        assert_eq!(sf.base_score(), 10);
+        assert!(sf.is_final());
+        assert_eq!(sf.rolls().len(), 3);
+    }
 }
