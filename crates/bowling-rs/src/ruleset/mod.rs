@@ -108,8 +108,8 @@ pub trait Ruleset: Sized + Clone + std::fmt::Debug + 'static {
 
     /// Returns a full rack of pins for this ruleset.
     ///
-    /// Derived from [`PIN_COUNT`](Self::PIN_COUNT). Panics at compile time
-    /// (in const context) or at runtime if `PIN_COUNT` exceeds 16.
+    /// Derived from [`PIN_COUNT`](Self::PIN_COUNT). The assert inside
+    /// [`PinSet::range`] fires at compile time if `PIN_COUNT` exceeds 16.
     fn full_rack() -> PinSet {
         PinSet::range(0, Self::PIN_COUNT)
     }
