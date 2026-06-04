@@ -291,17 +291,12 @@ mod tests {
 
     #[test]
     fn all_gutter_scoring() {
-        let mut frames: Vec<ScoredFrame> = (1..=9)
-            .map(|n| open_frame(frame(n), 0, 0))
-            .collect();
+        let mut frames: Vec<ScoredFrame> = (1..=9).map(|n| open_frame(frame(n), 0, 0)).collect();
         frames.push(ScoredFrame::new(
             frame(10),
             FramePosition::Final,
             FrameKind::Open,
-            vec![
-                Roll::clean(PinSet::EMPTY),
-                Roll::clean(PinSet::EMPTY),
-            ],
+            vec![Roll::clean(PinSet::EMPTY), Roll::clean(PinSet::EMPTY)],
             0,
         ));
         let sb = compute_scoreboard::<TenPin>(&frames);
@@ -312,9 +307,7 @@ mod tests {
     fn all_fives_spare_scoring() {
         // Each frame: 5 + spare, next ball 5 → frame score = 15
         // Last frame: 5, spare, 5 → base 15, no bonus (final)
-        let mut frames: Vec<ScoredFrame> = (1..=9)
-            .map(|n| spare_frame(frame(n), 5))
-            .collect();
+        let mut frames: Vec<ScoredFrame> = (1..=9).map(|n| spare_frame(frame(n), 5)).collect();
         frames.push(ScoredFrame::new(
             frame(10),
             FramePosition::Final,
@@ -359,19 +352,28 @@ mod tests {
         let sb = compute_scoreboard::<TenPin>(&frames);
 
         // Verify individual frame scores
-        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[0] else {
+        let FrameScore::Resolved {
+            cumulative, bonus, ..
+        } = &sb.frames[0]
+        else {
             panic!("frame 1 should be resolved")
         };
-        assert_eq!(*bonus, 10);   // 3 + 7 from frame 2
+        assert_eq!(*bonus, 10); // 3 + 7 from frame 2
         assert_eq!(*cumulative, 20);
 
-        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[1] else {
+        let FrameScore::Resolved {
+            cumulative, bonus, ..
+        } = &sb.frames[1]
+        else {
             panic!("frame 2 should be resolved")
         };
-        assert_eq!(*bonus, 5);    // first roll of frame 3
+        assert_eq!(*bonus, 5); // first roll of frame 3
         assert_eq!(*cumulative, 35);
 
-        let FrameScore::Resolved { cumulative, bonus, .. } = &sb.frames[2] else {
+        let FrameScore::Resolved {
+            cumulative, bonus, ..
+        } = &sb.frames[2]
+        else {
             panic!("frame 3 should be resolved")
         };
         assert_eq!(*bonus, 0);
@@ -407,13 +409,19 @@ mod tests {
 
         let sb = compute_scoreboard::<TenPin>(&frames);
 
-        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[0] else {
+        let FrameScore::Resolved {
+            bonus, cumulative, ..
+        } = &sb.frames[0]
+        else {
             panic!("frame 1 should be resolved")
         };
         assert_eq!(*bonus, 13); // 10 + 3
         assert_eq!(*cumulative, 23);
 
-        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[1] else {
+        let FrameScore::Resolved {
+            bonus, cumulative, ..
+        } = &sb.frames[1]
+        else {
             panic!("frame 2 should be resolved")
         };
         assert_eq!(*bonus, 7); // 3 + 4
@@ -476,8 +484,8 @@ mod tests {
             FramePosition::Regular,
             FrameKind::Open,
             vec![
-                Roll::foul(foul_pins),       // foul: score = 0
-                Roll::clean(clean_pins),     // clean: score = 3
+                Roll::foul(foul_pins),   // foul: score = 0
+                Roll::clean(clean_pins), // clean: score = 3
             ],
             3, // 0 + 3
         );
@@ -496,13 +504,16 @@ mod tests {
 
         let sb = compute_scoreboard::<TenPin>(&frames);
 
-        let FrameScore::Resolved { bonus, cumulative, .. } = &sb.frames[0] else {
+        let FrameScore::Resolved {
+            bonus, cumulative, ..
+        } = &sb.frames[0]
+        else {
             panic!("frame 1 should be resolved")
         };
-        assert_eq!(*bonus, 3);       // foul(0) + clean(3), NOT pin_count(5) + 3
+        assert_eq!(*bonus, 3); // foul(0) + clean(3), NOT pin_count(5) + 3
         assert_eq!(*cumulative, 13); // 10 + 3
 
-        assert_eq!(sb.total, 16);    // 13 + 3
+        assert_eq!(sb.total, 16); // 13 + 3
     }
 
     #[test]

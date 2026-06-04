@@ -114,8 +114,16 @@ impl PinSet {
             return Self::EMPTY;
         }
         // bits [start, end): mask with `end` bits set, minus mask with `start` bits set.
-        let hi = if end == 16 { u16::MAX } else { (1u16 << end) - 1 };
-        let lo = if start == 16 { u16::MAX } else { (1u16 << start) - 1 };
+        let hi = if end == 16 {
+            u16::MAX
+        } else {
+            (1u16 << end) - 1
+        };
+        let lo = if start == 16 {
+            u16::MAX
+        } else {
+            (1u16 << start) - 1
+        };
         Self(hi & !lo)
     }
 
@@ -134,7 +142,10 @@ impl PinSet {
 
     /// Returns the number of pins in the set.
     #[inline]
-    #[expect(clippy::cast_possible_truncation, reason = "u16 has at most 16 bits set")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "u16 has at most 16 bits set"
+    )]
     pub const fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
@@ -374,7 +385,10 @@ impl Iterator for PinSetIter {
         if self.0 == 0 {
             None
         } else {
-            #[expect(clippy::cast_possible_truncation, reason = "u16 trailing zeros fits in u8")]
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "u16 trailing zeros fits in u8"
+            )]
             let idx = self.0.trailing_zeros() as u8;
             self.0 &= self.0 - 1; // clear lowest set bit
             Some(idx)

@@ -513,10 +513,7 @@ impl<R: Ruleset> FinalFrame<R, FinalFillTwo> {
     ///
     /// Always transitions to [`FinalFillThree`], either with reset pins
     /// (another clearance) or with remaining pins.
-    pub fn roll(
-        mut self,
-        delivery: Roll,
-    ) -> Result<FinalFrame<R, FinalFillThree>, BowlingError> {
+    pub fn roll(mut self, delivery: Roll) -> Result<FinalFrame<R, FinalFillThree>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
         let new_standing = self.phase.standing - delivery.knocked();

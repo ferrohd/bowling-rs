@@ -607,10 +607,7 @@ mod tests {
 
     #[test]
     fn all_gutter_scores_zero() {
-        let game = GameBuilder::<TenPin>::new("Bob")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<TenPin>::new("Bob").unwrap().build().unwrap();
 
         let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..20 {

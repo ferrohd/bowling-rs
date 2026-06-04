@@ -19,10 +19,7 @@ fn pin_count(max: u8) -> impl Strategy<Value = u8> {
 /// Rolls are drawn from the given `counts` vector. If the game finishes
 /// before all counts are used, that's fine.
 fn play_game_with_counts<R: Ruleset>(counts: &[u8]) -> (Scoreboard, u32) {
-    let game = GameBuilder::<R>::new("Prop")
-        .unwrap()
-        .build()
-        .unwrap();
+    let game = GameBuilder::<R>::new("Prop").unwrap().build().unwrap();
 
     let mut progress = Progress::AwaitingRoll(game);
     let mut rolls_used = 0u32;

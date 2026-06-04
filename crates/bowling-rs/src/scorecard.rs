@@ -37,7 +37,10 @@ impl ScoreCard {
 
     /// Returns how many frames have been completed.
     pub fn frames_completed(&self) -> u8 {
-        #[expect(clippy::cast_possible_truncation, reason = "frame count is always <= 255")]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "frame count is always <= 255"
+        )]
         {
             self.frames.len() as u8
         }

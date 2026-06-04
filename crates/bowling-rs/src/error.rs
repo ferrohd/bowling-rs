@@ -6,9 +6,7 @@ use crate::pins::PinSet;
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BowlingError {
     /// Attempted to knock down pins that are not currently standing.
-    #[error(
-        "invalid delivery: tried to knock {knocked} but only {standing} are standing"
-    )]
+    #[error("invalid delivery: tried to knock {knocked} but only {standing} are standing")]
     InvalidDelivery {
         /// The pins the player tried to knock down.
         knocked: PinSet,

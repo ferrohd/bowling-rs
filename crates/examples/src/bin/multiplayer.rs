@@ -23,50 +23,50 @@ fn main() {
 
     let rolls: &[(u8, &str)] = &[
         // Frame 1
-        (10, "Strike!"),         // Alice — strike
-        (8, ""),                 // Bob — 8
-        (1, ""),                 // Bob — 1 (open, 9)
+        (10, "Strike!"), // Alice — strike
+        (8, ""),         // Bob — 8
+        (1, ""),         // Bob — 1 (open, 9)
         // Frame 2
-        (7, ""),                 // Alice — 7
-        (3, "Spare!"),           // Alice — spare
-        (10, "Strike!"),         // Bob — strike
+        (7, ""),         // Alice — 7
+        (3, "Spare!"),   // Alice — spare
+        (10, "Strike!"), // Bob — strike
         // Frame 3
-        (9, ""),                 // Alice — 9
-        (0, "Miss"),             // Alice — gutter (open, 9)
-        (7, ""),                 // Bob — 7
-        (3, "Spare!"),           // Bob — spare
+        (9, ""),       // Alice — 9
+        (0, "Miss"),   // Alice — gutter (open, 9)
+        (7, ""),       // Bob — 7
+        (3, "Spare!"), // Bob — spare
         // Frame 4
-        (10, "Strike!"),         // Alice — strike
-        (5, ""),                 // Bob — 5
-        (3, ""),                 // Bob — 3 (open, 8)
+        (10, "Strike!"), // Alice — strike
+        (5, ""),         // Bob — 5
+        (3, ""),         // Bob — 3 (open, 8)
         // Frame 5
-        (0, "Gutter"),           // Alice — gutter
-        (8, ""),                 // Alice — 8 (open, 8)
-        (10, "Strike!"),         // Bob — strike
+        (0, "Gutter"),   // Alice — gutter
+        (8, ""),         // Alice — 8 (open, 8)
+        (10, "Strike!"), // Bob — strike
         // Frame 6
-        (8, ""),                 // Alice — 8
-        (2, "Spare!"),           // Alice — spare
-        (10, "Strike!"),         // Bob — strike
+        (8, ""),         // Alice — 8
+        (2, "Spare!"),   // Alice — spare
+        (10, "Strike!"), // Bob — strike
         // Frame 7
-        (10, "Strike!"),         // Alice — strike
-        (9, ""),                 // Bob — 9
-        (0, "Miss"),             // Bob — 0 (open, 9)
+        (10, "Strike!"), // Alice — strike
+        (9, ""),         // Bob — 9
+        (0, "Miss"),     // Bob — 0 (open, 9)
         // Frame 8
-        (10, "Strike!"),         // Alice — strike
-        (7, ""),                 // Bob — 7
-        (3, "Spare!"),           // Bob — spare
+        (10, "Strike!"), // Alice — strike
+        (7, ""),         // Bob — 7
+        (3, "Spare!"),   // Bob — spare
         // Frame 9
-        (9, ""),                 // Alice — 9
-        (0, "Miss"),             // Alice — 0 (open, 9)
-        (8, ""),                 // Bob — 8
-        (1, ""),                 // Bob — 1 (open, 9)
+        (9, ""),     // Alice — 9
+        (0, "Miss"), // Alice — 0 (open, 9)
+        (8, ""),     // Bob — 8
+        (1, ""),     // Bob — 1 (open, 9)
         // Frame 10
-        (10, "Strike!"),         // Alice — strike (fill balls coming)
-        (10, "Strike!"),         // Alice — fill 1
-        (10, "Strike!"),         // Alice — fill 2
-        (9, ""),                 // Bob — 9
-        (1, "Spare!"),           // Bob — spare (fill ball coming)
-        (5, ""),                 // Bob — fill
+        (10, "Strike!"), // Alice — strike (fill balls coming)
+        (10, "Strike!"), // Alice — fill 1
+        (10, "Strike!"), // Alice — fill 2
+        (9, ""),         // Bob — 9
+        (1, "Spare!"),   // Bob — spare (fill ball coming)
+        (5, ""),         // Bob — fill
     ];
 
     let mut progress = Progress::AwaitingRoll(game);
