@@ -1,14 +1,12 @@
 # bowling-rs
 
-Bowling game engine for Rust. Generic over ruleset — ships with ten-pin,
-candlepin, and duckpin. Tracks scoring, multiplayer turn rotation, fouls, and
-split detection.
+Bowling game engine for Rust, generic over ruleset. Ships with ten-pin,
+candlepin, and duckpin.
 
-The game state machine uses the typestate pattern, so things like rolling after
-a completed game or building a game with zero players are compile errors, not
-runtime ones.
+The game is a typestate machine, so rolling after a completed game or building
+a game with zero players won't compile.
 
-## Quick look
+## Usage
 
 ```rust
 use bowling_rs::prelude::*;
@@ -34,27 +32,26 @@ loop {
 }
 ```
 
-`roll_count(n)` is a convenience that picks `n` pins for you. For full control
-over which specific pins get knocked and whether a foul occurred, use
-`game.roll(Roll::clean(pinset))` or `game.roll(Roll::foul(pinset))` instead.
+`roll_count(n)` picks `n` pins for you. If you need to specify which pins
+and whether it was a foul, use `game.roll(Roll::clean(pinset))` or
+`game.roll(Roll::foul(pinset))`.
 
 ## Rulesets
 
-| | Ten-Pin | Candlepin | Duckpin |
+| | Ten-pin | Candlepin | Duckpin |
 |---|---|---|---|
 | Balls/frame | 2 | 3 | 3 |
 | Deadwood | Cleared | Remains | Cleared |
 | 3-ball clearance | n/a | Spare | Flat 10, no bonus |
 | Split detection | Yes | No | No |
 
-All three use 10 pins, 10 frames, and traditional bonus scoring (strike +2,
-spare +1). The `Ruleset` trait is public if you want to define your own variant.
+All three use 10 pins, 10 frames, and standard bonus scoring (strike +2,
+spare +1). Implement the `Ruleset` trait to add your own.
 
 ## Scoreboards
 
-`game.scoreboard(i)` returns a `Scoreboard` that tracks per-frame scoring
-mid-game. Frames waiting on bonus rolls show up as `Pending` rather than
-being computed wrong. The `Display` impl gives you a text table:
+`game.scoreboard(i)` returns per-frame scoring mid-game. Frames still waiting
+on bonus rolls show as `Pending`. The `Display` impl gives you a text table:
 
 ```text
 Frame |   1 |   2 |   3 |   4 |   5 |   6 |   7 |   8 |   9 |  10 |
@@ -66,9 +63,9 @@ Total: 300
 
 ## Split detection
 
-`PinGeometry` models the physical adjacency of pins on the deck. The standard
-10-pin triangle layout ships as `TEN_PIN_GEOMETRY`. A split is when the head pin
-is down and the remaining standing pins form disconnected groups:
+`PinGeometry` models pin adjacency on the deck. The standard 10-pin triangle
+is `TEN_PIN_GEOMETRY`. A split is when the head pin is down and the remaining
+pins form disconnected groups:
 
 ```rust
 use bowling_rs::prelude::*;
@@ -79,8 +76,6 @@ assert!(TEN_PIN_GEOMETRY.is_split(standing));
 
 ## Examples
 
-The `bowling-examples` crate has a few runnable demos:
-
 ```sh
 cargo run --bin perfect_game   # 12 strikes, 300 points
 cargo run --bin multiplayer    # two-player game with scoreboards
@@ -88,10 +83,10 @@ cargo run --bin splits         # split detection on various pin leaves
 cargo run --bin rulesets        # same rolls under ten-pin, candlepin, duckpin
 ```
 
-## Testing
+## Tests
 
-Unit tests, property-based tests (`proptest`), and compile-fail tests
-(`trybuild`). `cargo test` runs everything.
+`cargo test` runs unit tests, property tests (proptest), and compile-fail
+tests (trybuild).
 
 ## License
 
