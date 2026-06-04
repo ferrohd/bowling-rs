@@ -5,8 +5,6 @@
 
 use std::{fmt, ops};
 
-use crate::error::BowlingError;
-
 // ---------------------------------------------------------------------------
 // PinSet
 // ---------------------------------------------------------------------------
@@ -24,9 +22,6 @@ use crate::error::BowlingError;
 /// let ten = PinSet::full::<10>();          // first 10 pins
 /// let specific = PinSet::of([3, 5, 6, 9]); // pins by index
 /// let span = PinSet::range(5, 10);         // pins 5..10
-///
-/// // Fallible constructor for runtime pin counts:
-/// let dynamic = PinSet::try_full(10).unwrap();
 ///
 /// // Collect from an iterator:
 /// let collected: PinSet = (0..5).collect();
@@ -56,26 +51,6 @@ impl PinSet {
             Self(u16::MAX)
         } else {
             Self((1u16 << N) - 1)
-        }
-    }
-
-    /// Creates a full pin set with the first `n` pins standing.
-    ///
-    /// Use [`full`](Self::full) when the count is a compile-time constant.
-    /// This fallible variant is for runtime-determined pin counts (e.g. from
-    /// [`Ruleset::PIN_COUNT`](crate::ruleset::Ruleset::PIN_COUNT)).
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BowlingError::TooManyPins`] if `n > 16`.
-    pub fn try_full(n: u8) -> Result<Self, BowlingError> {
-        if n > 16 {
-            return Err(BowlingError::TooManyPins(n));
-        }
-        if n == 16 {
-            Ok(Self(u16::MAX))
-        } else {
-            Ok(Self((1u16 << n) - 1))
         }
     }
 
@@ -217,20 +192,18 @@ impl PinSet {
         Self(self.0 | other.0)
     }
 
-    /// Complement within a given pin count: the pins in `0..pin_count` that
+    /// Complement within a given pin count: the pins in `0..N` that
     /// are **not** in `self`.
     ///
     /// ```
     /// # use bowling_rs::pins::PinSet;
     /// let standing = PinSet::of([0, 1, 2]);
-    /// let knocked = standing.complement_within(10);
+    /// let knocked = standing.complement_within::<10>();
     /// assert_eq!(knocked, PinSet::range(3, 10));
     /// ```
     #[inline]
-    pub fn complement_within(self, pin_count: u8) -> Self {
-        Self::try_full(pin_count)
-            .expect("pin_count must be <= 16")
-            .difference(self)
+    pub const fn complement_within<const N: u8>(self) -> Self {
+        Self::full::<N>().difference(self)
     }
 
     /// Iterate over the pin indices present in the set.
@@ -447,11 +420,6 @@ mod tests {
     }
 
     #[test]
-    fn too_many_pins_errors() {
-        assert!(PinSet::try_full(17).is_err());
-    }
-
-    #[test]
     fn full_sixteen_pins() {
         let ps = PinSet::full::<16>();
         assert_eq!(ps.count(), 16);
@@ -514,7 +482,7 @@ mod tests {
     #[test]
     fn complement_within_works() {
         let standing = PinSet::of([0, 1, 2]);
-        assert_eq!(standing.complement_within(10), PinSet::range(3, 10));
+        assert_eq!(standing.complement_within::<10>(), PinSet::range(3, 10));
     }
 
     #[test]

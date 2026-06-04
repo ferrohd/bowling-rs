@@ -17,8 +17,4 @@ pub enum BowlingError {
     /// A player name was empty.
     #[error("player name must not be empty")]
     EmptyPlayerName,
-
-    /// Attempted to create a `PinSet` with more pins than the maximum (16).
-    #[error("pin count {0} exceeds maximum of 16")]
-    TooManyPins(u8),
 }
