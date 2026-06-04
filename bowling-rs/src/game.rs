@@ -293,17 +293,17 @@ pub enum Progress<R: Ruleset> {
 
 /// Builder for constructing a [`Game`].
 ///
-/// The constructor requires the first player's name, making it structurally
+/// The constructor requires the first player, making it structurally
 /// impossible to build a game with zero players. Additional players can be
 /// added with [`add_player`](GameBuilder::add_player).
 ///
 /// ```
 /// use bowling_rs::prelude::*;
 ///
-/// let game = GameBuilder::<TenPin>::new("Alice")
-///     .unwrap()
-///     .add_player("Bob")
-///     .unwrap()
+/// let alice = Player::new("Alice").unwrap();
+/// let bob = Player::new("Bob").unwrap();
+/// let game = GameBuilder::<TenPin>::new(alice)
+///     .add_player(bob)
 ///     .build();
 /// ```
 #[derive(Debug)]
@@ -316,32 +316,24 @@ impl<R: Ruleset> GameBuilder<R> {
     /// Creates a new game builder with the first player.
     ///
     /// At least one player is required to create a game, so the constructor
-    /// takes the first player's name up front.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BowlingError::EmptyPlayerName`] if `name` is empty.
-    pub fn new(name: impl Into<String>) -> Result<Self, BowlingError> {
-        Ok(Self {
+    /// takes the first player up front.
+    pub fn new(player: Player) -> Self {
+        Self {
             competitors: vec![Competitor {
-                player: Player::new(name)?,
+                player,
                 card: ScoreCard::new(),
             }],
             _ruleset: std::marker::PhantomData,
-        })
+        }
     }
 
     /// Adds another player to the game.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BowlingError::EmptyPlayerName`] if `name` is empty.
-    pub fn add_player(mut self, name: impl Into<String>) -> Result<Self, BowlingError> {
+    pub fn add_player(mut self, player: Player) -> Self {
         self.competitors.push(Competitor {
-            player: Player::new(name)?,
+            player,
             card: ScoreCard::new(),
         });
-        Ok(self)
+        self
     }
 
     /// Builds and starts the game.
@@ -576,7 +568,8 @@ mod tests {
 
     /// Helper: play a full game of all strikes for a single player.
     fn play_perfect_game() -> Game<TenPin, Complete> {
-        let game = GameBuilder::<TenPin>::new("Alice").unwrap().build();
+        let alice = Player::new("Alice").unwrap();
+        let game = GameBuilder::<TenPin>::new(alice).build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..12 {
@@ -602,7 +595,8 @@ mod tests {
 
     #[test]
     fn all_gutter_scores_zero() {
-        let game = GameBuilder::<TenPin>::new("Bob").unwrap().build();
+        let bob = Player::new("Bob").unwrap();
+        let game = GameBuilder::<TenPin>::new(bob).build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..20 {
@@ -623,11 +617,9 @@ mod tests {
 
     #[test]
     fn two_player_game_alternates() {
-        let game = GameBuilder::<TenPin>::new("Alice")
-            .unwrap()
-            .add_player("Bob")
-            .unwrap()
-            .build();
+        let alice = Player::new("Alice").unwrap();
+        let bob = Player::new("Bob").unwrap();
+        let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
 
         assert_eq!(game.current_player().name(), "Alice");
         assert_eq!(game.current_frame_number(), frame(1));
@@ -648,13 +640,14 @@ mod tests {
 
     #[test]
     fn empty_player_name_errors() {
-        let result = GameBuilder::<TenPin>::new("");
+        let result = Player::new("");
         assert!(result.is_err());
     }
 
     #[test]
     fn all_spares_with_five() {
-        let game = GameBuilder::<TenPin>::new("Charlie").unwrap().build();
+        let charlie = Player::new("Charlie").unwrap();
+        let game = GameBuilder::<TenPin>::new(charlie).build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for i in 0..21 {
@@ -678,11 +671,9 @@ mod tests {
 
     #[test]
     fn competitor_accessors_work() {
-        let game = GameBuilder::<TenPin>::new("Alice")
-            .unwrap()
-            .add_player("Bob")
-            .unwrap()
-            .build();
+        let alice = Player::new("Alice").unwrap();
+        let bob = Player::new("Bob").unwrap();
+        let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
 
         assert_eq!(game.competitor_count(), 2);
         assert_eq!(game.player(0).name(), "Alice");
@@ -697,7 +688,8 @@ mod tests {
         // A foul that physically clears all pins: the frame completes
         // (strike transition), but base_score is 0 because Roll::score()
         // returns 0 on fouls.
-        let game = GameBuilder::<TenPin>::new("Fouler").unwrap().build();
+        let fouler = Player::new("Fouler").unwrap();
+        let game = GameBuilder::<TenPin>::new(fouler).build();
 
         let foul_strike = Roll::foul(PinSet::full::<10>());
         let progress = game.roll(foul_strike).unwrap();
@@ -720,7 +712,8 @@ mod tests {
         // Frame pattern: each frame knocks 3, then 3, then 3 (open, 9 pins).
         // Final frame: same pattern (3, 3, 3 = open, 9).
         // No strikes or spares → no bonuses. Total = 9 × 10 = 90.
-        let game = GameBuilder::<Candlepin>::new("Candle").unwrap().build();
+        let candle = Player::new("Candle").unwrap();
+        let game = GameBuilder::<Candlepin>::new(candle).build();
 
         let mut progress = Progress::AwaitingRoll(game);
         // 10 frames × 3 balls = 30 rolls
@@ -746,7 +739,8 @@ mod tests {
         // Duckpin: frame 1 clears all pins in 3 balls (AllDown).
         // Frame 2 is a simple open. AllDown earns NO bonus in duckpin,
         // so frame 1 score should be exactly 10 (flat), not 10 + frame 2 rolls.
-        let game = GameBuilder::<Duckpin>::new("Duck").unwrap().build();
+        let duck = Player::new("Duck").unwrap();
+        let game = GameBuilder::<Duckpin>::new(duck).build();
 
         // Frame 1: 3 + 4 + 3 = 10 (all down in 3 balls)
         let progress = game.roll_count(3).unwrap();

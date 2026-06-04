@@ -5,11 +5,9 @@ use bowling_rs::prelude::*;
 fn main() {
     println!("=== Two-Player Game ===\n");
 
-    let game = GameBuilder::<TenPin>::new("Alice")
-        .unwrap()
-        .add_player("Bob")
-        .unwrap()
-        .build();
+    let alice = Player::new("Alice").unwrap();
+    let bob = Player::new("Bob").unwrap();
+    let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
 
     // Pre-scripted rolls for both players interleaved by the engine's
     // turn rotation. Alice bowls her frame, then Bob bowls his, repeat.

@@ -19,7 +19,8 @@ fn pin_count(max: u8) -> impl Strategy<Value = u8> {
 /// Rolls are drawn from the given `counts` vector. If the game finishes
 /// before all counts are used, that's fine.
 fn play_game_with_counts<R: Ruleset>(counts: &[u8]) -> (Scoreboard, u32) {
-    let game = GameBuilder::<R>::new("Prop").unwrap().build();
+    let player = Player::new("Prop").unwrap();
+    let game = GameBuilder::<R>::new(player).build();
 
     let mut progress = Progress::AwaitingRoll(game);
     let mut rolls_used = 0u32;
@@ -63,9 +64,8 @@ proptest! {
     fn tenpin_game_always_terminates(
         counts in proptest::collection::vec(pin_count(10), 21..=30)
     ) {
-        let game = GameBuilder::<TenPin>::new("Term")
-            .unwrap()
-            .build();
+        let player = Player::new("Term").unwrap();
+        let game = GameBuilder::<TenPin>::new(player).build();
 
         let mut progress = Progress::AwaitingRoll(game);
         let mut total_rolls = 0u32;
@@ -173,9 +173,11 @@ proptest! {
         player_count in 2u8..=4,
         counts in proptest::collection::vec(pin_count(10), 80..=100)
     ) {
-        let mut builder = GameBuilder::<TenPin>::new("P0").unwrap();
+        let p0 = Player::new("P0").unwrap();
+        let mut builder = GameBuilder::<TenPin>::new(p0);
         for i in 1..player_count {
-            builder = builder.add_player(format!("P{i}")).unwrap();
+            let player = Player::new(format!("P{i}")).unwrap();
+            builder = builder.add_player(player);
         }
         let game = builder.build();
 

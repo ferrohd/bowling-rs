@@ -5,7 +5,8 @@ use bowling_rs::prelude::*;
 fn main() {
     println!("=== Perfect Game (Ten-Pin) ===\n");
 
-    let game = GameBuilder::<TenPin>::new("Alice").unwrap().build();
+    let alice = Player::new("Alice").unwrap();
+    let game = GameBuilder::<TenPin>::new(alice).build();
     let mut progress = Progress::AwaitingRoll(game);
 
     let mut roll_num = 0;

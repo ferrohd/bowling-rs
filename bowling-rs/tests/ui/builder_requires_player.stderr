@@ -2,14 +2,14 @@ error[E0061]: this function takes 1 argument but 0 arguments were supplied
  --> tests/ui/builder_requires_player.rs:8:20
   |
 8 |     let _builder = GameBuilder::<TenPin>::new();
-  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^-- argument #1 is missing
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^-- argument #1 of type `Player` is missing
   |
 note: associated function defined here
  --> src/game.rs
   |
-  |     pub fn new(name: impl Into<String>) -> Result<Self, BowlingError> {
+  |     pub fn new(player: Player) -> Self {
   |            ^^^
 help: provide the argument
   |
-8 |     let _builder = GameBuilder::<TenPin>::new(/* name */);
-  |                                               ++++++++++
+8 |     let _builder = GameBuilder::<TenPin>::new(/* Player */);
+  |                                               ++++++++++++

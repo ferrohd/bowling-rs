@@ -15,8 +15,10 @@ The interesting bit is that the game is modelled as a typestate machine. Rolling
 ```rust
 use bowling_rs::prelude::*;
 
-let game = GameBuilder::<TenPin>::new("Alice").unwrap()
-    .add_player("Bob").unwrap()
+let alice = Player::new("Alice").unwrap();
+let bob = Player::new("Bob").unwrap();
+let game = GameBuilder::<TenPin>::new(alice)
+    .add_player(bob)
     .build();
 
 let mut progress = Progress::AwaitingRoll(game);
