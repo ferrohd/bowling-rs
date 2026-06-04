@@ -2,7 +2,7 @@
 
 ![docs.rs](https://img.shields.io/docsrs/bowling-rs)
 ![Crates.io](https://img.shields.io/crates/v/bowling-rs)
-![Crates.io License](https://img.shields.io/crates/l/bowling-rs)
+![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/bowling-rs)
 ![GitHub Repo stars](https://img.shields.io/github/stars/ferrohd/bowling-rs)
 
