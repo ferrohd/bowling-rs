@@ -1,5 +1,11 @@
 # bowling-rs
 
+![docs.rs](https://img.shields.io/docsrs/bowling-rs)
+![Crates.io](https://img.shields.io/crates/v/bowling-rs)
+![Crates.io License](https://img.shields.io/crates/l/bowling-rs)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/bowling-rs)
+![GitHub Repo stars](https://img.shields.io/github/stars/ferrohd/bowling-rs)
+
 A bowling game engine in Rust. It handles scoring, frame tracking, multiplayer turn rotation, and split detection for ten-pin, candlepin, and duckpin bowling.
 
 The interesting bit is that the game is modelled as a typestate machine. Rolling on a finished game or building a game with no players are compile errors, not runtime ones. Frames work the same way internally: each delivery consumes the current frame state and produces the next one, so invalid transitions can't happen.
@@ -107,4 +113,6 @@ This runs unit tests, property tests ([proptest](https://github.com/proptest-rs/
 
 ## License
 
-[GPL-3.0-or-later](../LICENSE)
+Licensed under the [GNU General Public License v3.0 or later](../LICENSE).
+
+For commercial licensing options (use without GPL obligations), contact the project maintainer.
