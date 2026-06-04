@@ -113,6 +113,6 @@ This runs unit tests, property tests ([proptest](https://github.com/proptest-rs/
 
 ## License
 
-Licensed under the [GNU General Public License v3.0 or later](../LICENSE).
+Licensed under the [GNU General Public License v3.0 or later](LICENSE).
 
 For commercial licensing options (use without GPL obligations), contact the project maintainer.
