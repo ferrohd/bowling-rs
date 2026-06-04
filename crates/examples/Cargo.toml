@@ -1,0 +1,11 @@
+[package]
+name = "bowling-examples"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bowling-rs = { path = "../bowling-rs" }
+
+[lints]
+workspace = true
