@@ -1,6 +1,6 @@
 //! Duckpin bowling ruleset.
 
-use crate::geometry::PinGeometry;
+use crate::{geometry::PinGeometry, pins::PinSet};
 
 use super::{BonusScheme, DeadwoodPolicy, Ruleset};
 
@@ -26,6 +26,10 @@ impl Ruleset for Duckpin {
     };
     /// In duckpin, clearing with all 3 balls is a flat 10 (no spare bonus).
     const ALL_DOWN_IS_SPARE: bool = false;
+
+    fn full_rack() -> PinSet {
+        PinSet::full::<10>()
+    }
 
     fn geometry() -> Option<&'static PinGeometry> {
         None

@@ -26,7 +26,7 @@
 //!
 //! // Build a single-player ten-pin game
 //! let game = GameBuilder::<TenPin>::new("Alice").unwrap()
-//!     .build().unwrap();
+//!     .build();
 //!
 //! // Bowl a perfect game (12 strikes)
 //! let mut progress = Progress::AwaitingRoll(game);

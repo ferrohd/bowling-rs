@@ -214,14 +214,14 @@ impl<R: Ruleset, P: FramePhase> RegularFrame<R, P> {
 
 impl<R: Ruleset> RegularFrame<R, BallOne> {
     /// Creates a new regular frame ready for the first delivery.
-    pub fn new(number: FrameNumber) -> Result<Self, BowlingError> {
-        Ok(Self {
+    pub fn new(number: FrameNumber) -> Self {
+        Self {
             number,
             phase: BallOne {
-                standing: PinSet::try_full(R::PIN_COUNT)?,
+                standing: R::full_rack(),
             },
             _ruleset: PhantomData,
-        })
+        }
     }
 
     /// Deliver the first ball.
@@ -388,14 +388,14 @@ impl<R: Ruleset, P: FramePhase> FinalFrame<R, P> {
 
 impl<R: Ruleset> FinalFrame<R, BallOne> {
     /// Creates a new final frame.
-    pub fn new(number: FrameNumber) -> Result<Self, BowlingError> {
-        Ok(Self {
+    pub fn new(number: FrameNumber) -> Self {
+        Self {
             number,
             phase: BallOne {
-                standing: PinSet::try_full(R::PIN_COUNT)?,
+                standing: R::full_rack(),
             },
             _ruleset: PhantomData,
-        })
+        }
     }
 
     /// Deliver ball one of the final frame.
@@ -411,7 +411,7 @@ impl<R: Ruleset> FinalFrame<R, BallOne> {
             return Ok(FinalAfterOne::ToFillTwo(FinalFrame {
                 number: self.number,
                 phase: FinalFillTwo {
-                    standing: PinSet::try_full(R::PIN_COUNT)?,
+                    standing: R::full_rack(),
                     rolls,
                 },
                 _ruleset: PhantomData,
@@ -443,7 +443,7 @@ impl<R: Ruleset> FinalFrame<R, BallTwo> {
             return Ok(FinalAfterTwo::ToFillThree(FinalFrame {
                 number: self.number,
                 phase: FinalFillThree {
-                    standing: PinSet::try_full(R::PIN_COUNT)?,
+                    standing: R::full_rack(),
                     rolls: self.phase.rolls,
                     first_ball_outcome: FirstBallOutcome::NonStrike,
                 },
@@ -486,7 +486,7 @@ impl<R: Ruleset> FinalFrame<R, BallThree> {
                 return Ok(FinalAfterThree::ToFillThree(FinalFrame {
                     number: self.number,
                     phase: FinalFillThree {
-                        standing: PinSet::try_full(R::PIN_COUNT)?,
+                        standing: R::full_rack(),
                         rolls: self.phase.rolls,
                         first_ball_outcome: FirstBallOutcome::NonStrike,
                     },
@@ -524,7 +524,7 @@ impl<R: Ruleset> FinalFrame<R, FinalFillTwo> {
             return Ok(FinalFrame {
                 number: self.number,
                 phase: FinalFillThree {
-                    standing: PinSet::try_full(R::PIN_COUNT)?,
+                    standing: R::full_rack(),
                     rolls: self.phase.rolls,
                     first_ball_outcome: FirstBallOutcome::Strike,
                 },
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn regular_frame_strike() {
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let outcome = frame.roll(strike_roll()).unwrap();
         let RegAfterOne::Done(sf) = outcome else {
             panic!("expected Done")
@@ -629,7 +629,7 @@ mod tests {
 
     #[test]
     fn regular_frame_spare() {
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let outcome = frame.roll(knock(7)).unwrap();
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue")
@@ -645,7 +645,7 @@ mod tests {
 
     #[test]
     fn regular_frame_open() {
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let outcome = frame.roll(knock(3)).unwrap();
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue")
@@ -661,14 +661,14 @@ mod tests {
 
     #[test]
     fn invalid_delivery_rejected() {
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let bad = Roll::clean(PinSet::of([15]));
         assert!(frame.roll(bad).is_err());
     }
 
     #[test]
     fn final_frame_three_strikes() {
-        let f = FinalFrame::<TenPin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<TenPin, BallOne>::new(frame(10));
         let FinalAfterOne::ToFillTwo(f2) = f.roll(strike_roll()).unwrap() else {
             panic!("expected ToFillTwo")
         };
@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn final_frame_spare_plus_fill() {
-        let f = FinalFrame::<TenPin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<TenPin, BallOne>::new(frame(10));
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(7)).unwrap() else {
             panic!("expected ToBallTwo")
         };
@@ -704,7 +704,7 @@ mod tests {
     #[test]
     fn regular_frame_gutter_then_spare() {
         // Ball 1: gutter (0 pins). Ball 2: clears full rack → spare.
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let outcome = frame.roll(knock(0)).unwrap();
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue after gutter")
@@ -724,7 +724,7 @@ mod tests {
         // Ball 1: foul knocking 3 pins. Pins are removed from standing,
         // but the delivery scores 0.
         let foul_delivery = Roll::foul(PinSet::of([0, 1, 2]));
-        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<TenPin, BallOne>::new(frame(1));
         let outcome = frame.roll(foul_delivery).unwrap();
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue; foul didn't clear all pins")
@@ -750,7 +750,7 @@ mod tests {
         // Strike on ball 1 → fill-2 knocks 6 → fill-3 knocks 2 of
         // the remaining 4. Pins reset after strike, NOT after fill-2
         // partial.
-        let f = FinalFrame::<TenPin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<TenPin, BallOne>::new(frame(10));
         let FinalAfterOne::ToFillTwo(f2) = f.roll(strike_roll()).unwrap() else {
             panic!("expected ToFillTwo")
         };
@@ -774,7 +774,7 @@ mod tests {
     #[test]
     fn final_frame_open() {
         // Ball 1: 3. Ball 2: 4. No clearance → done, no fill ball.
-        let f = FinalFrame::<TenPin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<TenPin, BallOne>::new(frame(10));
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
             panic!("expected ToBallTwo")
         };
@@ -790,7 +790,7 @@ mod tests {
 
     #[test]
     fn final_frame_gutter_gutter() {
-        let f = FinalFrame::<TenPin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<TenPin, BallOne>::new(frame(10));
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(0)).unwrap() else {
             panic!("expected ToBallTwo")
         };
@@ -813,7 +813,7 @@ mod tests {
     fn candlepin_regular_three_ball_spare() {
         // Candlepin: 3 balls per frame. Knock 3 → 4 → 3 (all 10 down).
         // ALL_DOWN_IS_SPARE = true → FrameKind::Spare
-        let frame = RegularFrame::<Candlepin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<Candlepin, BallOne>::new(frame(1));
         let outcome = frame.roll(knock(3)).unwrap();
         let RegAfterOne::Continue(f2) = outcome else {
             panic!("expected Continue")
@@ -838,7 +838,7 @@ mod tests {
     fn duckpin_regular_three_ball_alldown() {
         // Duckpin: same rolls as above, 3 → 4 → 3 (all 10 down).
         // ALL_DOWN_IS_SPARE = false → FrameKind::AllDown (no bonus)
-        let frame = RegularFrame::<Duckpin, BallOne>::new(frame(1)).unwrap();
+        let frame = RegularFrame::<Duckpin, BallOne>::new(frame(1));
         let outcome = frame.roll(knock(3)).unwrap();
         let RegAfterOne::Continue(f2) = outcome else {
             panic!("expected Continue")
@@ -861,7 +861,7 @@ mod tests {
     fn candlepin_final_three_ball_spare_earns_fill() {
         // Candlepin final frame: 3 → 4 → 3 (all down via 3 balls).
         // ALL_DOWN_IS_SPARE = true → earns a fill ball.
-        let f = FinalFrame::<Candlepin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<Candlepin, BallOne>::new(frame(10));
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
             panic!("expected ToBallTwo")
         };
@@ -888,7 +888,7 @@ mod tests {
     fn duckpin_final_three_ball_alldown_no_fill() {
         // Duckpin final frame: 3 → 4 → 3 (all down via 3 balls).
         // ALL_DOWN_IS_SPARE = false → Done immediately, no fill ball.
-        let f = FinalFrame::<Duckpin, BallOne>::new(frame(10)).unwrap();
+        let f = FinalFrame::<Duckpin, BallOne>::new(frame(10));
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(3)).unwrap() else {
             panic!("expected ToBallTwo")
         };

@@ -4,7 +4,7 @@
 use bowling_rs::prelude::*;
 
 fn play<R: Ruleset>(rolls: &[u8]) -> u16 {
-    let game = GameBuilder::<R>::new("Demo").unwrap().build().unwrap();
+    let game = GameBuilder::<R>::new("Demo").unwrap().build();
     let mut progress = Progress::AwaitingRoll(game);
 
     for &pins in rolls {
@@ -19,12 +19,12 @@ fn play<R: Ruleset>(rolls: &[u8]) -> u16 {
     match progress {
         Progress::Complete(g) => {
             let sb = g.scoreboard(0);
-            println!("{}\n", sb);
+            println!("{sb}\n");
             sb.total
         }
         Progress::AwaitingRoll(g) => {
             let sb = g.scoreboard(0);
-            println!("{}\n", sb);
+            println!("{sb}\n");
             println!("  (game still in progress — not enough rolls)");
             sb.total
         }

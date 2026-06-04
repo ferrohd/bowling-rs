@@ -9,8 +9,7 @@ fn main() {
         .unwrap()
         .add_player("Bob")
         .unwrap()
-        .build()
-        .unwrap();
+        .build();
 
     // Pre-scripted rolls for both players interleaved by the engine's
     // turn rotation. Alice bowls her frame, then Bob bowls his, repeat.

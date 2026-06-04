@@ -15,7 +15,7 @@ use bowling_rs::prelude::*;
 
 let game = GameBuilder::<TenPin>::new("Alice").unwrap()
     .add_player("Bob").unwrap()
-    .build().unwrap();
+    .build();
 
 let mut progress = Progress::AwaitingRoll(game);
 

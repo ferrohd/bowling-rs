@@ -168,11 +168,11 @@ impl<R: Ruleset> FrameState<R> {
     }
 
     /// Create the appropriate frame state for the given frame number.
-    fn new_frame(frame_number: FrameNumber) -> Result<Self, BowlingError> {
+    fn new_frame(frame_number: FrameNumber) -> Self {
         if frame_number.get() == R::FRAME_COUNT {
-            Ok(Self::FinalBallOne(FinalFrame::new(frame_number)?))
+            Self::FinalBallOne(FinalFrame::new(frame_number))
         } else {
-            Ok(Self::RegularBallOne(RegularFrame::new(frame_number)?))
+            Self::RegularBallOne(RegularFrame::new(frame_number))
         }
     }
 
@@ -304,8 +304,7 @@ pub enum Progress<R: Ruleset> {
 ///     .unwrap()
 ///     .add_player("Bob")
 ///     .unwrap()
-///     .build()
-///     .unwrap();
+///     .build();
 /// ```
 #[derive(Debug)]
 pub struct GameBuilder<R: Ruleset> {
@@ -346,22 +345,17 @@ impl<R: Ruleset> GameBuilder<R> {
     }
 
     /// Builds and starts the game.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BowlingError::TooManyPins`] if the ruleset declares a pin
-    /// count exceeding 16.
-    pub fn build(self) -> Result<Game<R, AwaitingRoll>, BowlingError> {
+    pub fn build(self) -> Game<R, AwaitingRoll> {
         let first_frame = const { FrameNumber::new(1).unwrap() };
-        let frame_state = FrameState::new_frame(first_frame)?;
-        Ok(Game {
+        let frame_state = FrameState::new_frame(first_frame);
+        Game {
             competitors: self.competitors,
             live: ActiveState {
                 current_player: 0,
                 current_frame_number: first_frame,
                 frame_state,
             },
-        })
+        }
     }
 }
 
@@ -482,7 +476,11 @@ impl<R: Ruleset> Game<R, AwaitingRoll> {
             FrameRollResult::Done(scored) => {
                 // Frame complete for current player
                 competitors[current_player].card.push_frame(scored);
-                advance_turn::<R>(competitors, current_player, current_frame_number)
+                Ok(advance_turn::<R>(
+                    competitors,
+                    current_player,
+                    current_frame_number,
+                ))
             }
         }
     }
@@ -493,39 +491,39 @@ fn advance_turn<R: Ruleset>(
     competitors: Vec<Competitor>,
     current_player: usize,
     current_frame_number: FrameNumber,
-) -> Result<Progress<R>, BowlingError> {
+) -> Progress<R> {
     let next_player = current_player + 1;
 
     if next_player < competitors.len() {
         // Same frame, next player
-        Ok(Progress::AwaitingRoll(Game {
+        Progress::AwaitingRoll(Game {
             competitors,
             live: ActiveState {
                 current_player: next_player,
                 current_frame_number,
-                frame_state: FrameState::new_frame(current_frame_number)?,
+                frame_state: FrameState::new_frame(current_frame_number),
             },
-        }))
+        })
     } else {
         // All players bowled this frame
         match current_frame_number.checked_add(1) {
             Some(next_frame) if next_frame.get() <= R::FRAME_COUNT => {
                 // Next frame, first player
-                Ok(Progress::AwaitingRoll(Game {
+                Progress::AwaitingRoll(Game {
                     competitors,
                     live: ActiveState {
                         current_player: 0,
                         current_frame_number: next_frame,
-                        frame_state: FrameState::new_frame(next_frame)?,
+                        frame_state: FrameState::new_frame(next_frame),
                     },
-                }))
+                })
             }
             _ => {
                 // Game over
-                Ok(Progress::Complete(Game {
+                Progress::Complete(Game {
                     competitors,
                     live: (),
-                }))
+                })
             }
         }
     }
@@ -578,10 +576,7 @@ mod tests {
 
     /// Helper: play a full game of all strikes for a single player.
     fn play_perfect_game() -> Game<TenPin, Complete> {
-        let game = GameBuilder::<TenPin>::new("Alice")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<TenPin>::new("Alice").unwrap().build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..12 {
@@ -607,7 +602,7 @@ mod tests {
 
     #[test]
     fn all_gutter_scores_zero() {
-        let game = GameBuilder::<TenPin>::new("Bob").unwrap().build().unwrap();
+        let game = GameBuilder::<TenPin>::new("Bob").unwrap().build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..20 {
@@ -632,8 +627,7 @@ mod tests {
             .unwrap()
             .add_player("Bob")
             .unwrap()
-            .build()
-            .unwrap();
+            .build();
 
         assert_eq!(game.current_player().name(), "Alice");
         assert_eq!(game.current_frame_number(), frame(1));
@@ -660,10 +654,7 @@ mod tests {
 
     #[test]
     fn all_spares_with_five() {
-        let game = GameBuilder::<TenPin>::new("Charlie")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<TenPin>::new("Charlie").unwrap().build();
 
         let mut progress = Progress::AwaitingRoll(game);
         for i in 0..21 {
@@ -691,8 +682,7 @@ mod tests {
             .unwrap()
             .add_player("Bob")
             .unwrap()
-            .build()
-            .unwrap();
+            .build();
 
         assert_eq!(game.competitor_count(), 2);
         assert_eq!(game.player(0).name(), "Alice");
@@ -707,10 +697,7 @@ mod tests {
         // A foul that physically clears all pins: the frame completes
         // (strike transition), but base_score is 0 because Roll::score()
         // returns 0 on fouls.
-        let game = GameBuilder::<TenPin>::new("Fouler")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<TenPin>::new("Fouler").unwrap().build();
 
         let foul_strike = Roll::foul(PinSet::full::<10>());
         let progress = game.roll(foul_strike).unwrap();
@@ -733,10 +720,7 @@ mod tests {
         // Frame pattern: each frame knocks 3, then 3, then 3 (open, 9 pins).
         // Final frame: same pattern (3, 3, 3 = open, 9).
         // No strikes or spares → no bonuses. Total = 9 × 10 = 90.
-        let game = GameBuilder::<Candlepin>::new("Candle")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<Candlepin>::new("Candle").unwrap().build();
 
         let mut progress = Progress::AwaitingRoll(game);
         // 10 frames × 3 balls = 30 rolls
@@ -762,10 +746,7 @@ mod tests {
         // Duckpin: frame 1 clears all pins in 3 balls (AllDown).
         // Frame 2 is a simple open. AllDown earns NO bonus in duckpin,
         // so frame 1 score should be exactly 10 (flat), not 10 + frame 2 rolls.
-        let game = GameBuilder::<Duckpin>::new("Duck")
-            .unwrap()
-            .build()
-            .unwrap();
+        let game = GameBuilder::<Duckpin>::new("Duck").unwrap().build();
 
         // Frame 1: 3 + 4 + 3 = 10 (all down in 3 balls)
         let progress = game.roll_count(3).unwrap();

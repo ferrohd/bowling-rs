@@ -13,6 +13,7 @@ pub use duckpin::Duckpin;
 pub use tenpin::TenPin;
 
 use crate::geometry::PinGeometry;
+use crate::pins::PinSet;
 
 // ---------------------------------------------------------------------------
 // DeadwoodPolicy
@@ -104,6 +105,14 @@ pub trait Ruleset: Sized + Clone + std::fmt::Debug + 'static {
 
     /// Human-readable name of the variant.
     fn name() -> &'static str;
+
+    /// Returns a full rack of pins for this ruleset.
+    ///
+    /// Implementors should call [`PinSet::full`] with the appropriate
+    /// const-generic pin count, e.g. `PinSet::full::<10>()`. This makes
+    /// the pin count a compile-time constant, eliminating runtime
+    /// validation from frame construction.
+    fn full_rack() -> PinSet;
 
     /// Returns the deadwood policy for this ruleset.
     ///

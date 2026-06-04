@@ -1,6 +1,6 @@
 //! Candlepin bowling ruleset.
 
-use crate::geometry::PinGeometry;
+use crate::{geometry::PinGeometry, pins::PinSet};
 
 use super::{BonusScheme, DeadwoodPolicy, Ruleset};
 
@@ -25,6 +25,10 @@ impl Ruleset for Candlepin {
         spare_bonus_balls: 1,
     };
     const ALL_DOWN_IS_SPARE: bool = true;
+
+    fn full_rack() -> PinSet {
+        PinSet::full::<10>()
+    }
 
     fn geometry() -> Option<&'static PinGeometry> {
         None
