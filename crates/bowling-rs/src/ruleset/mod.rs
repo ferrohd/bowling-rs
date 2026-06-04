@@ -108,11 +108,11 @@ pub trait Ruleset: Sized + Clone + std::fmt::Debug + 'static {
 
     /// Returns a full rack of pins for this ruleset.
     ///
-    /// Implementors should call [`PinSet::full`] with the appropriate
-    /// const-generic pin count, e.g. `PinSet::full::<10>()`. This makes
-    /// the pin count a compile-time constant, eliminating runtime
-    /// validation from frame construction.
-    fn full_rack() -> PinSet;
+    /// Derived from [`PIN_COUNT`](Self::PIN_COUNT). Panics at compile time
+    /// (in const context) or at runtime if `PIN_COUNT` exceeds 16.
+    fn full_rack() -> PinSet {
+        PinSet::range(0, Self::PIN_COUNT)
+    }
 
     /// Returns the deadwood policy for this ruleset.
     ///

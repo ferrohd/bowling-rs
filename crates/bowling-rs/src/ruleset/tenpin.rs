@@ -1,9 +1,6 @@
 //! Standard ten-pin bowling ruleset.
 
-use crate::{
-    geometry::{PinGeometry, TEN_PIN_GEOMETRY},
-    pins::PinSet,
-};
+use crate::geometry::{PinGeometry, TEN_PIN_GEOMETRY};
 
 use super::{BonusScheme, DeadwoodPolicy, Ruleset};
 
@@ -26,10 +23,6 @@ impl Ruleset for TenPin {
         spare_bonus_balls: 1,
     };
     const ALL_DOWN_IS_SPARE: bool = true;
-
-    fn full_rack() -> PinSet {
-        PinSet::full::<10>()
-    }
 
     fn geometry() -> Option<&'static PinGeometry> {
         Some(&TEN_PIN_GEOMETRY)
