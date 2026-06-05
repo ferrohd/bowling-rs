@@ -1,7 +1,7 @@
 //! Plays the same sequence of pin counts under ten-pin, candlepin, and duckpin
 //! to show how the rulesets diverge.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 fn play<R: Ruleset>(rolls: &[u8]) -> u16 {
     let player = Player::new("Demo").unwrap();

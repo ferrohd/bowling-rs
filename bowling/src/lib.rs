@@ -1,4 +1,4 @@
-//! # bowling-rs
+//! # bowling
 //!
 //! A generic, typestate-driven bowling game engine that models the complete
 //! mechanics of bowling: multiple players, strikes, spares, fill balls,
@@ -22,7 +22,7 @@
 //! ## Quick start
 //!
 //! ```
-//! use bowling_rs::prelude::*;
+//! use bowling::prelude::*;
 //!
 //! // Build a single-player ten-pin game
 //! let alice = Player::new("Alice").unwrap();

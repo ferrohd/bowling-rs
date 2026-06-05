@@ -36,19 +36,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84d7ced0ae9557296835c32bf1b1e02b44c746701f898460fb000d7eaa84f00a"
 
 [[package]]
-name = "bowling-examples"
-version = "0.0.0"
-dependencies = [
- "bowling-rs",
-]
-
-[[package]]
-name = "bowling-rs"
+name = "bowling"
 version = "0.1.0"
 dependencies = [
  "proptest",
  "thiserror",
  "trybuild",
+]
+
+[[package]]
+name = "bowling-examples"
+version = "0.0.0"
+dependencies = [
+ "bowling",
 ]
 
 [[package]]

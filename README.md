@@ -1,10 +1,10 @@
-# bowling-rs
+# bowling
 
-![docs.rs](https://img.shields.io/docsrs/bowling-rs)
-![Crates.io](https://img.shields.io/crates/v/bowling-rs)
+![docs.rs](https://img.shields.io/docsrs/bowling)
+![Crates.io](https://img.shields.io/crates/v/bowling)
 ![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)
-![Crates.io Total Downloads](https://img.shields.io/crates/d/bowling-rs)
-![GitHub Repo stars](https://img.shields.io/github/stars/ferrohd/bowling-rs)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/bowling)
+![GitHub Repo stars](https://img.shields.io/github/stars/ferrohd/bowling)
 
 A bowling game engine in Rust. It handles scoring, frame tracking, multiplayer turn rotation, and split detection for ten-pin, candlepin, and duckpin bowling.
 
@@ -13,7 +13,7 @@ The interesting bit is that the game is modelled as a typestate machine. Rolling
 ## Usage
 
 ```rust
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 let alice = Player::new("Alice").unwrap();
 let bob = Player::new("Bob").unwrap();

@@ -17,7 +17,7 @@ use std::{fmt, ops};
 /// # Construction
 ///
 /// ```
-/// # use bowling_rs::pins::PinSet;
+/// # use bowling::pins::PinSet;
 /// // Infallible, const-evaluable constructors:
 /// let ten = PinSet::full::<10>();          // first 10 pins
 /// let specific = PinSet::of([3, 5, 6, 9]); // pins by index
@@ -40,7 +40,7 @@ impl PinSet {
     /// triggers a compile-time error.
     ///
     /// ```
-    /// # use bowling_rs::pins::PinSet;
+    /// # use bowling::pins::PinSet;
     /// let ten = PinSet::full::<10>();
     /// assert_eq!(ten.count(), 10);
     /// ```
@@ -57,7 +57,7 @@ impl PinSet {
     /// Creates a `PinSet` containing exactly the given pin indices.
     ///
     /// ```
-    /// # use bowling_rs::pins::PinSet;
+    /// # use bowling::pins::PinSet;
     /// let ps = PinSet::of([0, 1, 2]);
     /// assert_eq!(ps.count(), 3);
     /// assert!(ps.contains(0) && ps.contains(1) && ps.contains(2));
@@ -77,7 +77,7 @@ impl PinSet {
     /// `[start, end)`.
     ///
     /// ```
-    /// # use bowling_rs::pins::PinSet;
+    /// # use bowling::pins::PinSet;
     /// let ps = PinSet::range(3, 7);
     /// assert_eq!(ps, PinSet::of([3, 4, 5, 6]));
     /// ```
@@ -196,7 +196,7 @@ impl PinSet {
     /// are **not** in `self`.
     ///
     /// ```
-    /// # use bowling_rs::pins::PinSet;
+    /// # use bowling::pins::PinSet;
     /// let standing = PinSet::of([0, 1, 2]);
     /// let knocked = standing.complement_within::<10>();
     /// assert_eq!(knocked, PinSet::range(3, 10));
@@ -291,7 +291,7 @@ impl ops::Not for PinSet {
 /// Collect pin indices into a `PinSet`.
 ///
 /// ```
-/// # use bowling_rs::pins::PinSet;
+/// # use bowling::pins::PinSet;
 /// let ps: PinSet = [0u8, 2, 4].into_iter().collect();
 /// assert_eq!(ps, PinSet::of([0, 2, 4]));
 /// ```

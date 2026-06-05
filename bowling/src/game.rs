@@ -298,7 +298,7 @@ pub enum Progress<R: Ruleset> {
 /// added with [`add_player`](GameBuilder::add_player).
 ///
 /// ```
-/// use bowling_rs::prelude::*;
+/// use bowling::prelude::*;
 ///
 /// let alice = Player::new("Alice").unwrap();
 /// let bob = Player::new("Bob").unwrap();

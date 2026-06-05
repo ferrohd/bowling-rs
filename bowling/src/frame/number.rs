@@ -21,7 +21,7 @@ impl FrameNumber {
     /// use an inline `const` block:
     ///
     /// ```
-    /// # use bowling_rs::frame::FrameNumber;
+    /// # use bowling::frame::FrameNumber;
     /// let first = const { FrameNumber::new(1).unwrap() }; // checked at compile time
     /// ```
     pub const fn new(n: u8) -> Option<Self> {

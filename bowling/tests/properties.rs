@@ -3,7 +3,7 @@
 //! These tests verify invariants that must hold for *any* valid sequence of
 //! rolls, across all three rulesets.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 use proptest::prelude::*;
 
 // ---------------------------------------------------------------------------
@@ -119,8 +119,8 @@ proptest! {
         let (sb, _) = play_game_with_counts::<TenPin>(&counts);
         // The last resolved frame's cumulative should equal total
         if let Some(cum) = sb.frames.iter().rev().find_map(|f| match f {
-            bowling_rs::scoring::FrameScore::Resolved { cumulative, .. } => Some(*cumulative),
-            bowling_rs::scoring::FrameScore::Pending { .. } => None,
+            bowling::scoring::FrameScore::Resolved { cumulative, .. } => Some(*cumulative),
+            bowling::scoring::FrameScore::Pending { .. } => None,
         }) {
             prop_assert_eq!(cum, sb.total);
         }

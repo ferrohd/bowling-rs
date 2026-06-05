@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Crate version
-      description: Output of `cargo tree -p bowling-rs` or the version in your `Cargo.toml`
+      description: Output of `cargo tree -p bowling` or the version in your `Cargo.toml`
       placeholder: "0.1.0"
     validations:
       required: true

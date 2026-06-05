@@ -1,6 +1,6 @@
 //! A two-player ten-pin game with a mix of strikes, spares, and open frames.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 fn main() {
     println!("=== Two-Player Game ===\n");

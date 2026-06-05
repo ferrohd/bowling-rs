@@ -1,7 +1,7 @@
 // This test proves that calling .roll() on a completed game does not compile.
 // The typestate pattern makes this a compile-time error.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 fn main() {
     let game: Game<TenPin, Complete> = todo!("assume we have a completed game");

@@ -9,11 +9,11 @@ warning: unreachable statement
    |
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0599]: no method named `roll_count` found for struct `bowling_rs::game::Game<bowling_rs::ruleset::TenPin, bowling_rs::game::Complete>` in the current scope
+error[E0599]: no method named `roll_count` found for struct `bowling::game::Game<bowling::ruleset::TenPin, bowling::game::Complete>` in the current scope
   --> tests/ui/roll_after_complete.rs:10:18
    |
 10 |     let _ = game.roll_count(5);
-   |                  ^^^^^^^^^^ method not found in `bowling_rs::game::Game<bowling_rs::ruleset::TenPin, bowling_rs::game::Complete>`
+   |                  ^^^^^^^^^^ method not found in `bowling::game::Game<bowling::ruleset::TenPin, bowling::game::Complete>`
    |
    = note: the method was found for
-           - `bowling_rs::game::Game<R, bowling_rs::game::AwaitingRoll>`
+           - `bowling::game::Game<R, bowling::game::AwaitingRoll>`

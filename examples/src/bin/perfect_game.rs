@@ -1,6 +1,6 @@
 //! The perfect game: 12 strikes, 300 points.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 fn main() {
     println!("=== Perfect Game (Ten-Pin) ===\n");

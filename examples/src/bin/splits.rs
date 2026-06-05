@@ -1,6 +1,6 @@
 //! Demonstrates split detection using the ten-pin geometry.
 
-use bowling_rs::prelude::*;
+use bowling::prelude::*;
 
 fn main() {
     println!("=== Split Detection (Ten-Pin) ===");
