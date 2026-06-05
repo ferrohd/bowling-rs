@@ -20,9 +20,7 @@ fn pin_count(max: u8) -> impl Strategy<Value = u8> {
 /// before all counts are used, that's fine.
 fn play_game_with_counts<R: Ruleset>(counts: &[u8]) -> (Scoreboard, u32) {
     let player = Player::new("Prop").unwrap();
-    let game = GameBuilder::<R>::new(player).build();
-
-    let mut progress = Progress::AwaitingRoll(game);
+    let mut progress = GameBuilder::<R>::new(player).build();
     let mut rolls_used = 0u32;
 
     for &n in counts {
@@ -37,12 +35,7 @@ fn play_game_with_counts<R: Ruleset>(counts: &[u8]) -> (Scoreboard, u32) {
         }
     }
 
-    let scoreboard = match progress {
-        Progress::Complete(g) => g.scoreboard(0),
-        Progress::AwaitingRoll(g) => g.scoreboard(0),
-    };
-
-    (scoreboard, rolls_used)
+    (progress.scoreboard(0), rolls_used)
 }
 
 // ---------------------------------------------------------------------------
@@ -65,9 +58,7 @@ proptest! {
         counts in proptest::collection::vec(pin_count(10), 21..=30)
     ) {
         let player = Player::new("Term").unwrap();
-        let game = GameBuilder::<TenPin>::new(player).build();
-
-        let mut progress = Progress::AwaitingRoll(game);
+        let mut progress = GameBuilder::<TenPin>::new(player).build();
         let mut total_rolls = 0u32;
 
         for &n in &counts {
@@ -179,9 +170,7 @@ proptest! {
             let player = Player::new(format!("P{i}")).unwrap();
             builder = builder.add_player(player);
         }
-        let game = builder.build();
-
-        let mut progress = Progress::AwaitingRoll(game);
+        let mut progress = builder.build();
         for &n in &counts {
             match progress {
                 Progress::AwaitingRoll(g) => {

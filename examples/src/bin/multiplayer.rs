@@ -7,7 +7,6 @@ fn main() {
 
     let alice = Player::new("Alice").unwrap();
     let bob = Player::new("Bob").unwrap();
-    let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
 
     // Pre-scripted rolls for both players interleaved by the engine's
     // turn rotation. Alice bowls her frame, then Bob bowls his, repeat.
@@ -66,7 +65,7 @@ fn main() {
         (5, ""),         // Bob — fill
     ];
 
-    let mut progress = Progress::AwaitingRoll(game);
+    let mut progress = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
     for &(pins, label) in rolls {
         let Progress::AwaitingRoll(g) = progress else {
             break;

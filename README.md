@@ -17,11 +17,9 @@ use bowling::prelude::*;
 
 let alice = Player::new("Alice").unwrap();
 let bob = Player::new("Bob").unwrap();
-let game = GameBuilder::<TenPin>::new(alice)
+let mut progress = GameBuilder::<TenPin>::new(alice)
     .add_player(bob)
     .build();
-
-let mut progress = Progress::AwaitingRoll(game);
 
 loop {
     match progress {

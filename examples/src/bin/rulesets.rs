@@ -5,8 +5,7 @@ use bowling::prelude::*;
 
 fn play<R: Ruleset>(rolls: &[u8]) -> u16 {
     let player = Player::new("Demo").unwrap();
-    let game = GameBuilder::<R>::new(player).build();
-    let mut progress = Progress::AwaitingRoll(game);
+    let mut progress = GameBuilder::<R>::new(player).build();
 
     for &pins in rolls {
         match progress {

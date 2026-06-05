@@ -278,13 +278,74 @@ impl<R: Ruleset, P: GamePhase<R>> std::fmt::Debug for Game<R, P> {
 // Progress enum
 // =========================================================================
 
-/// The outcome of a [`Game::roll`] call.
+/// The outcome of a [`GameBuilder::build`] or [`Game::roll`] call.
 #[derive(Debug)]
 pub enum Progress<R: Ruleset> {
     /// The game continues, more rolls needed.
     AwaitingRoll(Game<R, AwaitingRoll>),
     /// All players have finished all frames.
     Complete(Game<R, Complete>),
+}
+
+impl<R: Ruleset> From<Game<R, AwaitingRoll>> for Progress<R> {
+    fn from(game: Game<R, AwaitingRoll>) -> Self {
+        Self::AwaitingRoll(game)
+    }
+}
+
+impl<R: Ruleset> Progress<R> {
+    /// Returns `true` if all players have finished all frames.
+    pub fn is_complete(&self) -> bool {
+        matches!(self, Self::Complete(_))
+    }
+
+    /// Returns all competitors (player identity + score card).
+    pub fn competitors(&self) -> &[Competitor] {
+        match self {
+            Self::AwaitingRoll(g) => g.competitors(),
+            Self::Complete(g) => g.competitors(),
+        }
+    }
+
+    /// Returns the number of competitors.
+    pub fn competitor_count(&self) -> usize {
+        match self {
+            Self::AwaitingRoll(g) => g.competitor_count(),
+            Self::Complete(g) => g.competitor_count(),
+        }
+    }
+
+    /// Returns the [`Player`] at the given index.
+    pub fn player(&self, index: usize) -> &Player {
+        match self {
+            Self::AwaitingRoll(g) => g.player(index),
+            Self::Complete(g) => g.player(index),
+        }
+    }
+
+    /// Returns the [`ScoreCard`] at the given index.
+    pub fn scorecard(&self, index: usize) -> &ScoreCard {
+        match self {
+            Self::AwaitingRoll(g) => g.scorecard(index),
+            Self::Complete(g) => g.scorecard(index),
+        }
+    }
+
+    /// Computes the [`Scoreboard`] for the player at the given index.
+    pub fn scoreboard(&self, index: usize) -> Scoreboard {
+        match self {
+            Self::AwaitingRoll(g) => g.scoreboard(index),
+            Self::Complete(g) => g.scoreboard(index),
+        }
+    }
+
+    /// Computes scoreboards for all players.
+    pub fn scoreboards(&self) -> Vec<Scoreboard> {
+        match self {
+            Self::AwaitingRoll(g) => g.scoreboards(),
+            Self::Complete(g) => g.scoreboards(),
+        }
+    }
 }
 
 // =========================================================================
@@ -302,9 +363,11 @@ pub enum Progress<R: Ruleset> {
 ///
 /// let alice = Player::new("Alice").unwrap();
 /// let bob = Player::new("Bob").unwrap();
-/// let game = GameBuilder::<TenPin>::new(alice)
+/// let mut progress = GameBuilder::<TenPin>::new(alice)
 ///     .add_player(bob)
 ///     .build();
+///
+/// assert_eq!(progress.competitor_count(), 2);
 /// ```
 #[derive(Debug)]
 pub struct GameBuilder<R: Ruleset> {
@@ -336,18 +399,19 @@ impl<R: Ruleset> GameBuilder<R> {
         self
     }
 
-    /// Builds and starts the game.
-    pub fn build(self) -> Game<R, AwaitingRoll> {
+    /// Builds and starts the game, returning a [`Progress`] ready for
+    /// the first roll.
+    pub fn build(self) -> Progress<R> {
         let first_frame = const { FrameNumber::new(1).unwrap() };
         let frame_state = FrameState::new_frame(first_frame);
-        Game {
+        Progress::AwaitingRoll(Game {
             competitors: self.competitors,
             live: ActiveState {
                 current_player: 0,
                 current_frame_number: first_frame,
                 frame_state,
             },
-        }
+        })
     }
 }
 
@@ -569,9 +633,8 @@ mod tests {
     /// Helper: play a full game of all strikes for a single player.
     fn play_perfect_game() -> Game<TenPin, Complete> {
         let alice = Player::new("Alice").unwrap();
-        let game = GameBuilder::<TenPin>::new(alice).build();
+        let mut progress = GameBuilder::<TenPin>::new(alice).build();
 
-        let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..12 {
             match progress {
                 Progress::AwaitingRoll(g) => {
@@ -596,9 +659,8 @@ mod tests {
     #[test]
     fn all_gutter_scores_zero() {
         let bob = Player::new("Bob").unwrap();
-        let game = GameBuilder::<TenPin>::new(bob).build();
+        let mut progress = GameBuilder::<TenPin>::new(bob).build();
 
-        let mut progress = Progress::AwaitingRoll(game);
         for _ in 0..20 {
             match progress {
                 Progress::AwaitingRoll(g) => {
@@ -619,7 +681,11 @@ mod tests {
     fn two_player_game_alternates() {
         let alice = Player::new("Alice").unwrap();
         let bob = Player::new("Bob").unwrap();
-        let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
+        let Progress::AwaitingRoll(game) =
+            GameBuilder::<TenPin>::new(alice).add_player(bob).build()
+        else {
+            unreachable!()
+        };
 
         assert_eq!(game.current_player().name(), "Alice");
         assert_eq!(game.current_frame_number(), frame(1));
@@ -647,9 +713,8 @@ mod tests {
     #[test]
     fn all_spares_with_five() {
         let charlie = Player::new("Charlie").unwrap();
-        let game = GameBuilder::<TenPin>::new(charlie).build();
+        let mut progress = GameBuilder::<TenPin>::new(charlie).build();
 
-        let mut progress = Progress::AwaitingRoll(game);
         for i in 0..21 {
             match progress {
                 Progress::AwaitingRoll(g) => {
@@ -673,14 +738,14 @@ mod tests {
     fn competitor_accessors_work() {
         let alice = Player::new("Alice").unwrap();
         let bob = Player::new("Bob").unwrap();
-        let game = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
+        let progress = GameBuilder::<TenPin>::new(alice).add_player(bob).build();
 
-        assert_eq!(game.competitor_count(), 2);
-        assert_eq!(game.player(0).name(), "Alice");
-        assert_eq!(game.player(1).name(), "Bob");
-        assert_eq!(game.scorecard(0).frames_completed(), 0);
-        assert_eq!(game.scorecard(1).frames_completed(), 0);
-        assert_eq!(game.competitors().len(), 2);
+        assert_eq!(progress.competitor_count(), 2);
+        assert_eq!(progress.player(0).name(), "Alice");
+        assert_eq!(progress.player(1).name(), "Bob");
+        assert_eq!(progress.scorecard(0).frames_completed(), 0);
+        assert_eq!(progress.scorecard(1).frames_completed(), 0);
+        assert_eq!(progress.competitors().len(), 2);
     }
 
     #[test]
@@ -689,7 +754,9 @@ mod tests {
         // (strike transition), but base_score is 0 because Roll::score()
         // returns 0 on fouls.
         let fouler = Player::new("Fouler").unwrap();
-        let game = GameBuilder::<TenPin>::new(fouler).build();
+        let Progress::AwaitingRoll(game) = GameBuilder::<TenPin>::new(fouler).build() else {
+            unreachable!()
+        };
 
         let foul_strike = Roll::foul(PinSet::full::<10>());
         let progress = game.roll(foul_strike).unwrap();
@@ -713,9 +780,8 @@ mod tests {
         // Final frame: same pattern (3, 3, 3 = open, 9).
         // No strikes or spares → no bonuses. Total = 9 × 10 = 90.
         let candle = Player::new("Candle").unwrap();
-        let game = GameBuilder::<Candlepin>::new(candle).build();
+        let mut progress = GameBuilder::<Candlepin>::new(candle).build();
 
-        let mut progress = Progress::AwaitingRoll(game);
         // 10 frames × 3 balls = 30 rolls
         for _ in 0..30 {
             match progress {
@@ -740,7 +806,9 @@ mod tests {
         // Frame 2 is a simple open. AllDown earns NO bonus in duckpin,
         // so frame 1 score should be exactly 10 (flat), not 10 + frame 2 rolls.
         let duck = Player::new("Duck").unwrap();
-        let game = GameBuilder::<Duckpin>::new(duck).build();
+        let Progress::AwaitingRoll(game) = GameBuilder::<Duckpin>::new(duck).build() else {
+            unreachable!()
+        };
 
         // Frame 1: 3 + 4 + 3 = 10 (all down in 3 balls)
         let progress = game.roll_count(3).unwrap();

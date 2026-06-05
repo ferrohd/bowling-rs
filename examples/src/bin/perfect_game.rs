@@ -6,8 +6,7 @@ fn main() {
     println!("=== Perfect Game (Ten-Pin) ===\n");
 
     let alice = Player::new("Alice").unwrap();
-    let game = GameBuilder::<TenPin>::new(alice).build();
-    let mut progress = Progress::AwaitingRoll(game);
+    let mut progress = GameBuilder::<TenPin>::new(alice).build();
 
     let mut roll_num = 0;
     loop {
