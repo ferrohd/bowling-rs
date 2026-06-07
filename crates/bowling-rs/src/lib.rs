@@ -65,14 +65,14 @@ pub mod scoring;
 /// Convenience re-exports for the most commonly used types.
 pub mod prelude {
     pub use crate::error::BowlingError;
-    pub use crate::frame::{FrameKind, ScoredFrame};
+    pub use crate::frame::{FrameKind, FrameNumber, FramePosition, ScoredFrame};
     pub use crate::game::{
         AwaitingRoll, Complete, Competitor, Game, GameBuilder, GamePhase, Progress,
     };
     pub use crate::geometry::{PinGeometry, TEN_PIN_GEOMETRY};
     pub use crate::pins::PinSet;
     pub use crate::player::Player;
-    pub use crate::roll::Roll;
+    pub use crate::roll::{FoulStatus, Roll};
     pub use crate::scorecard::ScoreCard;
     pub use crate::ruleset::{BonusScheme, Candlepin, DeadwoodPolicy, Duckpin, Ruleset, TenPin};
     pub use crate::scoring::Scoreboard;

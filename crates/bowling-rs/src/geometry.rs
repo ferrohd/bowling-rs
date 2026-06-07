@@ -17,7 +17,7 @@ use crate::pins::PinSet;
 #[derive(Debug, Clone)]
 pub struct PinGeometry {
     /// Total number of pins in this layout.
-    pub pin_count: u8,
+    pin_count: u8,
     /// Adjacency pairs (unordered, symmetric).
     adjacency: &'static [(u8, u8)],
 }
@@ -29,6 +29,12 @@ impl PinGeometry {
             pin_count,
             adjacency,
         }
+    }
+
+    /// Returns the total number of pins in this layout.
+    #[inline]
+    pub const fn pin_count(&self) -> u8 {
+        self.pin_count
     }
 
     /// Returns `true` if the remaining standing pins constitute a **split**.

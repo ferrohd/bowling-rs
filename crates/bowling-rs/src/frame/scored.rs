@@ -1,5 +1,6 @@
 //! Completed frame representation.
 
+use super::FrameNumber;
 use crate::roll::Roll;
 
 // ---------------------------------------------------------------------------
@@ -23,6 +24,30 @@ pub enum FrameKind {
 }
 
 // ---------------------------------------------------------------------------
+// FramePosition
+// ---------------------------------------------------------------------------
+
+/// Whether a frame is a regular (non-final) frame or the final frame.
+///
+/// Replaces a bare `bool` with a self-documenting enum so that call sites
+/// read `FramePosition::Final` instead of `true`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FramePosition {
+    /// A regular (non-final) frame.
+    Regular,
+    /// The final frame of the game (with fill-ball rules).
+    Final,
+}
+
+impl FramePosition {
+    /// Returns `true` if this is the final frame.
+    #[inline]
+    pub const fn is_final(self) -> bool {
+        matches!(self, Self::Final)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // ScoredFrame
 // ---------------------------------------------------------------------------
 
@@ -33,9 +58,9 @@ pub enum FrameKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScoredFrame {
     /// The frame number (1-indexed).
-    number: u8,
-    /// Whether this was the final frame.
-    is_final: bool,
+    number: FrameNumber,
+    /// Whether this is a regular or final frame.
+    position: FramePosition,
     /// The kind of result.
     kind: FrameKind,
     /// All deliveries in the frame (1–3 for regular, up to 3 for final).
@@ -47,15 +72,15 @@ pub struct ScoredFrame {
 impl ScoredFrame {
     /// Creates a new completed frame.
     pub(crate) fn new(
-        number: u8,
-        is_final: bool,
+        number: FrameNumber,
+        position: FramePosition,
         kind: FrameKind,
         rolls: Vec<Roll>,
         base_score: u16,
     ) -> Self {
         Self {
             number,
-            is_final,
+            position,
             kind,
             rolls,
             base_score,
@@ -63,13 +88,18 @@ impl ScoredFrame {
     }
 
     /// Returns the frame number (1-indexed).
-    pub fn number(&self) -> u8 {
+    pub fn number(&self) -> FrameNumber {
         self.number
+    }
+
+    /// Returns the position of this frame (regular or final).
+    pub fn position(&self) -> FramePosition {
+        self.position
     }
 
     /// Returns `true` if this was the final frame of the game.
     pub fn is_final(&self) -> bool {
-        self.is_final
+        self.position.is_final()
     }
 
     /// Returns the classification of this frame (strike, spare, open, etc.).
@@ -91,14 +121,14 @@ impl ScoredFrame {
     pub fn bonus_balls(&self, strike_bonus: u8, spare_bonus: u8) -> u8 {
         match self.kind {
             FrameKind::Strike => {
-                if self.is_final {
+                if self.position.is_final() {
                     0
                 } else {
                     strike_bonus
                 }
             }
             FrameKind::Spare => {
-                if self.is_final {
+                if self.position.is_final() {
                     0
                 } else {
                     spare_bonus

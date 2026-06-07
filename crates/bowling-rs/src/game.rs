@@ -15,7 +15,8 @@
 use crate::error::BowlingError;
 use crate::frame::{
     BallOne, BallThree, BallTwo, FinalAfterOne, FinalAfterThree, FinalAfterTwo, FinalFillThree,
-    FinalFillTwo, FinalFrame, FramePhase, RegAfterOne, RegAfterTwo, RegularFrame, ScoredFrame,
+    FinalFillTwo, FinalFrame, FrameNumber, FramePhase, RegAfterOne, RegAfterTwo, RegularFrame,
+    ScoredFrame,
 };
 use crate::pins::PinSet;
 use crate::player::Player;
@@ -78,7 +79,7 @@ pub struct ActiveState<R: Ruleset> {
     /// Index of the player currently bowling.
     current_player: usize,
     /// The current frame number being bowled (1-indexed).
-    current_frame_number: u8,
+    current_frame_number: FrameNumber,
     /// The in-flight frame typestate (never absent while awaiting a roll).
     frame_state: FrameState<R>,
 }
@@ -167,8 +168,8 @@ impl<R: Ruleset> FrameState<R> {
     }
 
     /// Create the appropriate frame state for the given frame number.
-    fn new_frame(frame_number: u8) -> Result<Self, BowlingError> {
-        if frame_number == R::FRAME_COUNT {
+    fn new_frame(frame_number: FrameNumber) -> Result<Self, BowlingError> {
+        if frame_number.get() == R::FRAME_COUNT {
             Ok(Self::FinalBallOne(FinalFrame::new(frame_number)?))
         } else {
             Ok(Self::RegularBallOne(RegularFrame::new(frame_number)?))
@@ -351,12 +352,13 @@ impl<R: Ruleset> GameBuilder<R> {
     /// Returns [`BowlingError::TooManyPins`] if the ruleset declares a pin
     /// count exceeding 16.
     pub fn build(self) -> Result<Game<R, AwaitingRoll>, BowlingError> {
-        let frame_state = FrameState::new_frame(1)?;
+        let first_frame = const { FrameNumber::new(1).unwrap() };
+        let frame_state = FrameState::new_frame(first_frame)?;
         Ok(Game {
             competitors: self.competitors,
             live: ActiveState {
                 current_player: 0,
-                current_frame_number: 1,
+                current_frame_number: first_frame,
                 frame_state,
             },
         })
@@ -413,7 +415,7 @@ impl<R: Ruleset> Game<R, AwaitingRoll> {
     }
 
     /// Returns the current frame number (1-indexed).
-    pub fn current_frame_number(&self) -> u8 {
+    pub fn current_frame_number(&self) -> FrameNumber {
         self.live.current_frame_number
     }
 
@@ -490,7 +492,7 @@ impl<R: Ruleset> Game<R, AwaitingRoll> {
 fn advance_turn<R: Ruleset>(
     competitors: Vec<Competitor>,
     current_player: usize,
-    current_frame_number: u8,
+    current_frame_number: FrameNumber,
 ) -> Result<Progress<R>, BowlingError> {
     let next_player = current_player + 1;
 
@@ -506,23 +508,25 @@ fn advance_turn<R: Ruleset>(
         }))
     } else {
         // All players bowled this frame
-        let next_frame = current_frame_number + 1;
-        if next_frame > R::FRAME_COUNT {
-            // Game over
-            Ok(Progress::Complete(Game {
-                competitors,
-                live: (),
-            }))
-        } else {
-            // Next frame, first player
-            Ok(Progress::AwaitingRoll(Game {
-                competitors,
-                live: ActiveState {
-                    current_player: 0,
-                    current_frame_number: next_frame,
-                    frame_state: FrameState::new_frame(next_frame)?,
-                },
-            }))
+        match current_frame_number.checked_add(1) {
+            Some(next_frame) if next_frame.get() <= R::FRAME_COUNT => {
+                // Next frame, first player
+                Ok(Progress::AwaitingRoll(Game {
+                    competitors,
+                    live: ActiveState {
+                        current_player: 0,
+                        current_frame_number: next_frame,
+                        frame_state: FrameState::new_frame(next_frame)?,
+                    },
+                }))
+            }
+            _ => {
+                // Game over
+                Ok(Progress::Complete(Game {
+                    competitors,
+                    live: (),
+                }))
+            }
         }
     }
 }
@@ -574,6 +578,10 @@ mod tests {
     use crate::roll::Roll;
     use crate::ruleset::{Candlepin, Duckpin, TenPin};
     use crate::scoring::FrameScore;
+
+    fn frame(n: u8) -> FrameNumber {
+        FrameNumber::new(n).unwrap()
+    }
 
     /// Helper: play a full game of all strikes for a single player.
     fn play_perfect_game() -> Game<TenPin, Complete> {
@@ -638,7 +646,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(game.current_player().name(), "Alice");
-        assert_eq!(game.current_frame_number(), 1);
+        assert_eq!(game.current_frame_number(), frame(1));
 
         let progress = game.roll_count(3).unwrap();
         let Progress::AwaitingRoll(game) = progress else {
@@ -651,7 +659,7 @@ mod tests {
             panic!("should continue")
         };
         assert_eq!(game.current_player().name(), "Bob");
-        assert_eq!(game.current_frame_number(), 1);
+        assert_eq!(game.current_frame_number(), frame(1));
     }
 
     #[test]
@@ -714,14 +722,14 @@ mod tests {
             .build()
             .unwrap();
 
-        let foul_strike = Roll::new(PinSet::full(10).unwrap(), true);
+        let foul_strike = Roll::foul(PinSet::full(10).unwrap());
         let progress = game.roll(foul_strike).unwrap();
 
         // Game should advance (frame 1 done, now on frame 2)
         let Progress::AwaitingRoll(game) = progress else {
             panic!("game should continue after one frame")
         };
-        assert_eq!(game.current_frame_number(), 2);
+        assert_eq!(game.current_frame_number(), frame(2));
 
         // Frame 1 should be recorded with base_score 0
         let card = game.scorecard(0);
@@ -782,7 +790,7 @@ mod tests {
         let Progress::AwaitingRoll(g) = progress else {
             panic!("should continue; frame 1 done, frame 2 starts")
         };
-        assert_eq!(g.current_frame_number(), 2);
+        assert_eq!(g.current_frame_number(), frame(2));
 
         // Frame 2: 5 + 2 + 1 = 8 (open, 3 balls in duckpin)
         let progress = g.roll_count(5).unwrap();
@@ -800,7 +808,7 @@ mod tests {
             Progress::AwaitingRoll(g) => g,
             Progress::Complete(_) => panic!("game should not be complete after 2 frames"),
         };
-        assert_eq!(g.current_frame_number(), 3);
+        assert_eq!(g.current_frame_number(), frame(3));
         let sb = g.scoreboard(0);
 
         // Frame 1: AllDown, base 10, bonus 0 (not spare)

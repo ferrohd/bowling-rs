@@ -5,6 +5,7 @@
 
 use std::fmt;
 
+use crate::frame::FrameNumber;
 use crate::frame::scored::ScoredFrame;
 use crate::roll::Roll;
 use crate::ruleset::{BonusScheme, Ruleset};
@@ -25,7 +26,7 @@ pub enum FrameScore {
     /// Bonus has been fully resolved; cumulative score is known.
     Resolved {
         /// 1-indexed frame number.
-        frame: u8,
+        frame: FrameNumber,
         /// Base pin count (before bonuses).
         base: u16,
         /// Bonus pins from subsequent deliveries.
@@ -39,7 +40,7 @@ pub enum FrameScore {
     /// computable.
     Pending {
         /// 1-indexed frame number.
-        frame: u8,
+        frame: FrameNumber,
         /// Base pin count (before bonuses).
         base: u16,
     },
@@ -47,7 +48,7 @@ pub enum FrameScore {
 
 impl FrameScore {
     /// Returns the 1-indexed frame number (present in both variants).
-    pub fn frame(&self) -> u8 {
+    pub fn frame(&self) -> FrameNumber {
         match self {
             Self::Resolved { frame, .. } | Self::Pending { frame, .. } => *frame,
         }
@@ -222,40 +223,46 @@ pub fn compute_scoreboard<R: Ruleset>(frames: &[ScoredFrame]) -> Scoreboard {
 mod tests {
     use super::*;
     use crate::frame::FrameKind;
+    use crate::frame::FrameNumber;
+    use crate::frame::FramePosition;
     use crate::pins::PinSet;
     use crate::roll::Roll;
     use crate::ruleset::TenPin;
 
-    fn strike_frame(number: u8) -> ScoredFrame {
+    fn frame(n: u8) -> FrameNumber {
+        FrameNumber::new(n).unwrap()
+    }
+
+    fn strike_frame(number: FrameNumber) -> ScoredFrame {
         ScoredFrame::new(
             number,
-            false,
+            FramePosition::Regular,
             FrameKind::Strike,
             vec![Roll::clean(PinSet::full(10).unwrap())],
             10,
         )
     }
 
-    fn spare_frame(number: u8, first: u8) -> ScoredFrame {
+    fn spare_frame(number: FrameNumber, first: u8) -> ScoredFrame {
         let second = 10 - first;
         let first_pins = PinSet::from_raw((1u16 << first) - 1);
         let second_pins = PinSet::from_raw(((1u16 << 10) - 1) & !((1u16 << first) - 1));
         ScoredFrame::new(
             number,
-            false,
+            FramePosition::Regular,
             FrameKind::Spare,
             vec![Roll::clean(first_pins), Roll::clean(second_pins)],
             u16::from(first + second),
         )
     }
 
-    fn open_frame(number: u8, first: u8, second: u8) -> ScoredFrame {
+    fn open_frame(number: FrameNumber, first: u8, second: u8) -> ScoredFrame {
         let first_pins = PinSet::from_raw((1u16 << first) - 1);
         let second_pins =
             PinSet::from_raw(((1u16 << (first + second)) - 1) & !((1u16 << first) - 1));
         ScoredFrame::new(
             number,
-            false,
+            FramePosition::Regular,
             FrameKind::Open,
             vec![Roll::clean(first_pins), Roll::clean(second_pins)],
             u16::from(first + second),
@@ -265,11 +272,11 @@ mod tests {
     #[test]
     fn perfect_game_scoring() {
         // 12 strikes: frames 1-9 are regular strikes, frame 10 is final
-        let mut frames: Vec<ScoredFrame> = (1..=9).map(strike_frame).collect();
+        let mut frames: Vec<ScoredFrame> = (1..=9).map(|n| strike_frame(frame(n))).collect();
         // Final frame: 3 strikes
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Strike,
             vec![
                 Roll::clean(PinSet::full(10).unwrap()),
@@ -286,11 +293,11 @@ mod tests {
     #[test]
     fn all_gutter_scoring() {
         let mut frames: Vec<ScoredFrame> = (1..=9)
-            .map(|n| open_frame(n, 0, 0))
+            .map(|n| open_frame(frame(n), 0, 0))
             .collect();
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Open,
             vec![
                 Roll::clean(PinSet::EMPTY),
@@ -307,11 +314,11 @@ mod tests {
         // Each frame: 5 + spare, next ball 5 → frame score = 15
         // Last frame: 5, spare, 5 → base 15, no bonus (final)
         let mut frames: Vec<ScoredFrame> = (1..=9)
-            .map(|n| spare_frame(n, 5))
+            .map(|n| spare_frame(frame(n), 5))
             .collect();
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Spare,
             vec![
                 Roll::clean(PinSet::from_raw(0b0001_1111)),
@@ -332,16 +339,16 @@ mod tests {
         // Frames 4-9: Open(4,3) each = 7.                         Total = 42 + 42 = 84.
         // Frame 10: Open(2,5) (final) = 7.                        Total = 84 + 7  = 91.
         let mut frames = vec![
-            strike_frame(1),
-            spare_frame(2, 3),
-            open_frame(3, 5, 2),
+            strike_frame(frame(1)),
+            spare_frame(frame(2), 3),
+            open_frame(frame(3), 5, 2),
         ];
         for n in 4..=9 {
-            frames.push(open_frame(n, 4, 3));
+            frames.push(open_frame(frame(n), 4, 3));
         }
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Open,
             vec![
                 Roll::clean(PinSet::from_raw(0b0000_0011)),
@@ -384,16 +391,16 @@ mod tests {
         // Frames 4-9: Open(0,0). Cum stays at 47.
         // Frame 10: Open(0,0). Total = 47.
         let mut frames = vec![
-            strike_frame(1),
-            strike_frame(2),
-            open_frame(3, 3, 4),
+            strike_frame(frame(1)),
+            strike_frame(frame(2)),
+            open_frame(frame(3), 3, 4),
         ];
         for n in 4..=9 {
-            frames.push(open_frame(n, 0, 0));
+            frames.push(open_frame(frame(n), 0, 0));
         }
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Open,
             vec![Roll::clean(PinSet::EMPTY), Roll::clean(PinSet::EMPTY)],
             0,
@@ -420,11 +427,11 @@ mod tests {
     fn in_progress_game_has_pending_frames() {
         // 4 open frames (resolved) + 1 strike (pending, no frame 6 yet).
         let frames = vec![
-            open_frame(1, 3, 4), // base 7, cum 7
-            open_frame(2, 2, 5), // base 7, cum 14
-            open_frame(3, 1, 1), // base 2, cum 16
-            open_frame(4, 4, 4), // base 8, cum 24
-            strike_frame(5),     // needs 2 bonus rolls; not available
+            open_frame(frame(1), 3, 4), // base 7, cum 7
+            open_frame(frame(2), 2, 5), // base 7, cum 14
+            open_frame(frame(3), 1, 1), // base 2, cum 16
+            open_frame(frame(4), 4, 4), // base 8, cum 24
+            strike_frame(frame(5)),     // needs 2 bonus rolls; not available
         ];
 
         let sb = compute_scoreboard::<TenPin>(&frames);
@@ -466,23 +473,23 @@ mod tests {
         let foul_pins = PinSet::from_raw(0b0001_1111); // 5 pins
         let clean_pins = PinSet::from_raw(0b1110_0000); // 3 pins (7,8,9; from remaining standing)
         let foul_frame = ScoredFrame::new(
-            2,
-            false,
+            frame(2),
+            FramePosition::Regular,
             FrameKind::Open,
             vec![
-                Roll::new(foul_pins, true),  // foul: score = 0
+                Roll::foul(foul_pins),       // foul: score = 0
                 Roll::clean(clean_pins),     // clean: score = 3
             ],
             3, // 0 + 3
         );
 
-        let mut frames = vec![strike_frame(1), foul_frame];
+        let mut frames = vec![strike_frame(frame(1)), foul_frame];
         for n in 3..=9 {
-            frames.push(open_frame(n, 0, 0));
+            frames.push(open_frame(frame(n), 0, 0));
         }
         frames.push(ScoredFrame::new(
-            10,
-            true,
+            frame(10),
+            FramePosition::Final,
             FrameKind::Open,
             vec![Roll::clean(PinSet::EMPTY), Roll::clean(PinSet::EMPTY)],
             0,
