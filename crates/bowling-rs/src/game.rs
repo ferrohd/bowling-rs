@@ -557,14 +557,7 @@ impl<R: Ruleset> Game<R, Complete> {
 /// Pick `n` pins from the standing set using a simple lowest-bit-first
 /// strategy.
 fn pick_n_from(standing: PinSet, n: u8) -> PinSet {
-    let mut result = PinSet::EMPTY;
-    for (count, idx) in standing.into_iter().enumerate() {
-        if count >= n as usize {
-            break;
-        }
-        result = result.insert(idx);
-    }
-    result
+    standing.into_iter().take(n as usize).collect()
 }
 
 // =========================================================================
@@ -722,7 +715,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let foul_strike = Roll::foul(PinSet::full(10).unwrap());
+        let foul_strike = Roll::foul(PinSet::full::<10>());
         let progress = game.roll(foul_strike).unwrap();
 
         // Game should advance (frame 1 done, now on frame 2)

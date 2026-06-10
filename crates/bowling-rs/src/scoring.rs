@@ -238,15 +238,15 @@ mod tests {
             number,
             FramePosition::Regular,
             FrameKind::Strike,
-            vec![Roll::clean(PinSet::full(10).unwrap())],
+            vec![Roll::clean(PinSet::full::<10>())],
             10,
         )
     }
 
     fn spare_frame(number: FrameNumber, first: u8) -> ScoredFrame {
         let second = 10 - first;
-        let first_pins = PinSet::from_raw((1u16 << first) - 1);
-        let second_pins = PinSet::from_raw(((1u16 << 10) - 1) & !((1u16 << first) - 1));
+        let first_pins = PinSet::range(0, first);
+        let second_pins = PinSet::range(first, 10);
         ScoredFrame::new(
             number,
             FramePosition::Regular,
@@ -257,9 +257,8 @@ mod tests {
     }
 
     fn open_frame(number: FrameNumber, first: u8, second: u8) -> ScoredFrame {
-        let first_pins = PinSet::from_raw((1u16 << first) - 1);
-        let second_pins =
-            PinSet::from_raw(((1u16 << (first + second)) - 1) & !((1u16 << first) - 1));
+        let first_pins = PinSet::range(0, first);
+        let second_pins = PinSet::range(first, first + second);
         ScoredFrame::new(
             number,
             FramePosition::Regular,
@@ -279,9 +278,9 @@ mod tests {
             FramePosition::Final,
             FrameKind::Strike,
             vec![
-                Roll::clean(PinSet::full(10).unwrap()),
-                Roll::clean(PinSet::full(10).unwrap()),
-                Roll::clean(PinSet::full(10).unwrap()),
+                Roll::clean(PinSet::full::<10>()),
+                Roll::clean(PinSet::full::<10>()),
+                Roll::clean(PinSet::full::<10>()),
             ],
             30,
         ));
@@ -321,9 +320,9 @@ mod tests {
             FramePosition::Final,
             FrameKind::Spare,
             vec![
-                Roll::clean(PinSet::from_raw(0b0001_1111)),
-                Roll::clean(PinSet::from_raw(0b0011_1110_0000)),
-                Roll::clean(PinSet::from_raw(0b0001_1111)),
+                Roll::clean(PinSet::range(0, 5)),
+                Roll::clean(PinSet::range(5, 10)),
+                Roll::clean(PinSet::range(0, 5)),
             ],
             15,
         ));
@@ -351,8 +350,8 @@ mod tests {
             FramePosition::Final,
             FrameKind::Open,
             vec![
-                Roll::clean(PinSet::from_raw(0b0000_0011)),
-                Roll::clean(PinSet::from_raw(0b0001_1100)),
+                Roll::clean(PinSet::of([0, 1])),
+                Roll::clean(PinSet::of([2, 3, 4])),
             ],
             7,
         ));
@@ -470,8 +469,8 @@ mod tests {
         //   Frame 2 base = 0 + 3 = 3.
         //   Frame 2 cum = 13 + 3 = 16.
         // Remaining frames: all open(0,0).
-        let foul_pins = PinSet::from_raw(0b0001_1111); // 5 pins
-        let clean_pins = PinSet::from_raw(0b1110_0000); // 3 pins (7,8,9; from remaining standing)
+        let foul_pins = PinSet::range(0, 5);
+        let clean_pins = PinSet::of([5, 6, 7]);
         let foul_frame = ScoredFrame::new(
             frame(2),
             FramePosition::Regular,

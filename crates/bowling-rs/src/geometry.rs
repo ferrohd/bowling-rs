@@ -83,7 +83,7 @@ impl PinGeometry {
         }
 
         // If we haven't visited all standing pins, they're disconnected → split
-        standing.difference(visited).count() > 0
+        (standing - visited).count() > 0
     }
 }
 
@@ -144,26 +144,26 @@ mod tests {
     #[test]
     fn classic_7_10_split() {
         // Pins 7 and 10 (indices 6 and 9) standing, head pin down
-        let standing = PinSet::from_raw((1 << 6) | (1 << 9));
+        let standing = PinSet::of([6, 9]);
         assert!(TEN_PIN_GEOMETRY.is_split(standing));
     }
 
     #[test]
     fn adjacent_pins_not_a_split() {
         // Pins 4 and 5 (indices 3 and 4) standing, head pin down
-        let standing = PinSet::from_raw((1 << 3) | (1 << 4));
+        let standing = PinSet::of([3, 4]);
         assert!(!TEN_PIN_GEOMETRY.is_split(standing));
     }
 
     #[test]
     fn head_pin_standing_never_split() {
-        let standing = PinSet::from_raw((1 << 0) | (1 << 6) | (1 << 9));
+        let standing = PinSet::of([0, 6, 9]);
         assert!(!TEN_PIN_GEOMETRY.is_split(standing));
     }
 
     #[test]
     fn single_pin_not_a_split() {
-        let standing = PinSet::from_raw(1 << 6);
+        let standing = PinSet::of([6]);
         assert!(!TEN_PIN_GEOMETRY.is_split(standing));
     }
 
@@ -173,8 +173,7 @@ mod tests {
         // Component 1: {3, 6} via edge (3, 6).
         // Component 2: {5, 9} via edge (5, 9).
         // No edges connect the two components → split.
-        let standing =
-            PinSet::from_raw((1 << 3) | (1 << 5) | (1 << 6) | (1 << 9));
+        let standing = PinSet::of([3, 5, 6, 9]);
         assert!(TEN_PIN_GEOMETRY.is_split(standing));
     }
 }

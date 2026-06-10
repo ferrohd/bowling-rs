@@ -218,7 +218,7 @@ impl<R: Ruleset> RegularFrame<R, BallOne> {
         Ok(Self {
             number,
             phase: BallOne {
-                standing: PinSet::full(R::PIN_COUNT)?,
+                standing: PinSet::try_full(R::PIN_COUNT)?,
             },
             _ruleset: PhantomData,
         })
@@ -228,7 +228,7 @@ impl<R: Ruleset> RegularFrame<R, BallOne> {
     pub fn roll(self, delivery: Roll) -> Result<RegAfterOne<R>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         let mut rolls = Vec::with_capacity(R::BALLS_PER_FRAME as usize);
         rolls.push(delivery);
 
@@ -258,7 +258,7 @@ impl<R: Ruleset> RegularFrame<R, BallTwo> {
     pub fn roll(mut self, delivery: Roll) -> Result<RegAfterTwo<R>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         self.phase.rolls.push(delivery);
 
         // All pins down on second ball -> spare
@@ -298,7 +298,7 @@ impl<R: Ruleset> RegularFrame<R, BallThree> {
     pub fn roll(mut self, delivery: Roll) -> Result<ScoredFrame, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         self.phase.rolls.push(delivery);
 
         if new_standing.is_empty() {
@@ -392,7 +392,7 @@ impl<R: Ruleset> FinalFrame<R, BallOne> {
         Ok(Self {
             number,
             phase: BallOne {
-                standing: PinSet::full(R::PIN_COUNT)?,
+                standing: PinSet::try_full(R::PIN_COUNT)?,
             },
             _ruleset: PhantomData,
         })
@@ -402,7 +402,7 @@ impl<R: Ruleset> FinalFrame<R, BallOne> {
     pub fn roll(self, delivery: Roll) -> Result<FinalAfterOne<R>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         let mut rolls = Vec::with_capacity(3);
         rolls.push(delivery);
 
@@ -411,7 +411,7 @@ impl<R: Ruleset> FinalFrame<R, BallOne> {
             return Ok(FinalAfterOne::ToFillTwo(FinalFrame {
                 number: self.number,
                 phase: FinalFillTwo {
-                    standing: PinSet::full(R::PIN_COUNT)?,
+                    standing: PinSet::try_full(R::PIN_COUNT)?,
                     rolls,
                 },
                 _ruleset: PhantomData,
@@ -435,7 +435,7 @@ impl<R: Ruleset> FinalFrame<R, BallTwo> {
     pub fn roll(mut self, delivery: Roll) -> Result<FinalAfterTwo<R>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         self.phase.rolls.push(delivery);
 
         if new_standing.is_empty() {
@@ -443,7 +443,7 @@ impl<R: Ruleset> FinalFrame<R, BallTwo> {
             return Ok(FinalAfterTwo::ToFillThree(FinalFrame {
                 number: self.number,
                 phase: FinalFillThree {
-                    standing: PinSet::full(R::PIN_COUNT)?,
+                    standing: PinSet::try_full(R::PIN_COUNT)?,
                     rolls: self.phase.rolls,
                     first_ball_outcome: FirstBallOutcome::NonStrike,
                 },
@@ -477,7 +477,7 @@ impl<R: Ruleset> FinalFrame<R, BallThree> {
     pub fn roll(mut self, delivery: Roll) -> Result<FinalAfterThree<R>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         self.phase.rolls.push(delivery);
 
         if new_standing.is_empty() {
@@ -486,7 +486,7 @@ impl<R: Ruleset> FinalFrame<R, BallThree> {
                 return Ok(FinalAfterThree::ToFillThree(FinalFrame {
                     number: self.number,
                     phase: FinalFillThree {
-                        standing: PinSet::full(R::PIN_COUNT)?,
+                        standing: PinSet::try_full(R::PIN_COUNT)?,
                         rolls: self.phase.rolls,
                         first_ball_outcome: FirstBallOutcome::NonStrike,
                     },
@@ -519,7 +519,7 @@ impl<R: Ruleset> FinalFrame<R, FinalFillTwo> {
     ) -> Result<FinalFrame<R, FinalFillThree>, BowlingError> {
         validate_delivery(self.phase.standing, delivery)?;
 
-        let new_standing = self.phase.standing.difference(delivery.knocked());
+        let new_standing = self.phase.standing - delivery.knocked();
         self.phase.rolls.push(delivery);
 
         if new_standing.is_empty() {
@@ -527,7 +527,7 @@ impl<R: Ruleset> FinalFrame<R, FinalFillTwo> {
             return Ok(FinalFrame {
                 number: self.number,
                 phase: FinalFillThree {
-                    standing: PinSet::full(R::PIN_COUNT)?,
+                    standing: PinSet::try_full(R::PIN_COUNT)?,
                     rolls: self.phase.rolls,
                     first_ball_outcome: FirstBallOutcome::Strike,
                 },
@@ -607,14 +607,14 @@ mod tests {
     }
 
     fn strike_roll() -> Roll {
-        Roll::clean(PinSet::full(10).unwrap())
+        Roll::clean(PinSet::full::<10>())
     }
 
     fn knock(n: u8) -> Roll {
         if n == 0 {
             Roll::clean(PinSet::EMPTY)
         } else {
-            Roll::clean(PinSet::from_raw((1u16 << n) - 1))
+            Roll::clean(PinSet::range(0, n))
         }
     }
 
@@ -637,7 +637,7 @@ mod tests {
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue")
         };
-        let remaining = Roll::clean(PinSet::from_raw(0b0000_0011_1000_0000));
+        let remaining = Roll::clean(PinSet::range(7, 10));
         let outcome2 = frame2.roll(remaining).unwrap();
         let RegAfterTwo::Done(sf) = outcome2 else {
             panic!("expected Done")
@@ -653,7 +653,7 @@ mod tests {
         let RegAfterOne::Continue(frame2) = outcome else {
             panic!("expected Continue")
         };
-        let second = Roll::clean(PinSet::from_raw(0b0001_1000));
+        let second = Roll::clean(PinSet::of([3, 4]));
         let outcome2 = frame2.roll(second).unwrap();
         let RegAfterTwo::Done(sf) = outcome2 else {
             panic!("expected Done")
@@ -665,7 +665,7 @@ mod tests {
     #[test]
     fn invalid_delivery_rejected() {
         let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
-        let bad = Roll::clean(PinSet::from_raw(1 << 15));
+        let bad = Roll::clean(PinSet::of([15]));
         assert!(frame.roll(bad).is_err());
     }
 
@@ -691,7 +691,7 @@ mod tests {
         let FinalAfterOne::ToBallTwo(f2) = f.roll(knock(7)).unwrap() else {
             panic!("expected ToBallTwo")
         };
-        let spare_roll = Roll::clean(PinSet::from_raw(0b0000_0011_1000_0000));
+        let spare_roll = Roll::clean(PinSet::range(7, 10));
         let FinalAfterTwo::ToFillThree(f3) = f2.roll(spare_roll).unwrap() else {
             panic!("expected ToFillThree")
         };
@@ -726,7 +726,7 @@ mod tests {
     fn regular_frame_foul_removes_pins_but_scores_zero() {
         // Ball 1: foul knocking 3 pins. Pins are removed from standing,
         // but the delivery scores 0.
-        let foul_delivery = Roll::foul(PinSet::from_raw(0b0000_0111)); // pins 0,1,2
+        let foul_delivery = Roll::foul(PinSet::of([0, 1, 2]));
         let frame = RegularFrame::<TenPin, BallOne>::new(frame(1)).unwrap();
         let outcome = frame.roll(foul_delivery).unwrap();
         let RegAfterOne::Continue(frame2) = outcome else {
@@ -736,7 +736,7 @@ mod tests {
 
         // Ball 2: clean knock of 4 of the remaining 7.
         // Remaining standing is pins 3..=9; knock pins 3,4,5,6.
-        let ball2 = Roll::clean(PinSet::from_raw(0b0111_1000));
+        let ball2 = Roll::clean(PinSet::of([3, 4, 5, 6]));
         let outcome2 = frame2.roll(ball2).unwrap();
         let RegAfterTwo::Done(sf) = outcome2 else {
             panic!("expected Done")
@@ -766,7 +766,7 @@ mod tests {
         assert_eq!(f3.standing().count(), 4);
 
         // Knock 2 of the remaining 4 (pins 6, 7)
-        let fill3 = Roll::clean(PinSet::from_raw(0b1100_0000));
+        let fill3 = Roll::clean(PinSet::of([6, 7]));
         let sf = f3.roll(fill3).unwrap();
         assert_eq!(sf.kind(), FrameKind::Strike);
         assert_eq!(sf.base_score(), 18); // 10 + 6 + 2
@@ -782,7 +782,7 @@ mod tests {
             panic!("expected ToBallTwo")
         };
         // Pins 0,1,2 are down; knock pins 3,4,5,6 (4 pins from remaining)
-        let ball2 = Roll::clean(PinSet::from_raw(0b0111_1000));
+        let ball2 = Roll::clean(PinSet::of([3, 4, 5, 6]));
         let FinalAfterTwo::Done(sf) = f2.roll(ball2).unwrap() else {
             panic!("expected Done (open)")
         };
@@ -809,14 +809,7 @@ mod tests {
 
     /// Helper: knock `n` lowest-indexed pins from a given standing set.
     fn knock_n_from(standing: PinSet, n: u8) -> Roll {
-        let mut result = PinSet::EMPTY;
-        for (count, idx) in standing.into_iter().enumerate() {
-            if count >= n as usize {
-                break;
-            }
-            result = result.insert(idx);
-        }
-        Roll::clean(result)
+        Roll::clean(standing.into_iter().take(n as usize).collect())
     }
 
     #[test]
